@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERA VIP YOUTUBE</title>
+    <style>
+        /* GIAO DIỆN HACKER TỐI ƯU CHO MÀN HÌNH BÉ */
+        body { 
+            background-color: #000; 
+            color: #0f0; 
+            font-family: monospace; 
+            text-align: center; 
+            padding: 5px; 
+            margin: 0;
+        }
+        h2 { margin: 5px 0; font-size: 16px; border-bottom: 1px solid #0f0; }
+        
+        /* Ô NHẬP LINK */
+        input { 
+            width: 95%; 
+            padding: 8px; 
+            background: #222; 
+            color: #fff; 
+            border: 1px solid #0f0; 
+            margin-bottom: 5px; 
+        }
+        
+        /* NÚT BẤM CHUNG */
+        button { 
+            background: #111; 
+            color: #0f0; 
+            border: 1px solid #0f0; 
+            padding: 8px; 
+            margin: 2px;
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
+        button:active { background: #0f0; color: #000; }
+        
+        /* NÚT TẢI VỀ (MÀU ĐỎ CHO NỔI) */
+        .btn-download {
+            background: #b00;
+            color: #fff;
+            width: 98%;
+            margin-top: 10px;
+        }
+
+        /* KHUNG VIDEO */
+        #player-container { 
+            position: relative; 
+            padding-bottom: 56.25%; /* Tỉ lệ 16:9 */
+            height: 0; 
+            overflow: hidden; 
+            border: 2px solid #333; 
+            margin-bottom: 5px;
+        }
+        #player-container iframe { 
+            position: absolute; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+        }
+        
+        .status { font-size: 12px; color: yellow; margin: 5px; }
+        .control-row { display: flex; justify-content: center; gap: 2px; }
+    </style>
+</head>
+<body>
+
+    <h2>HERA YOUTUBE TOOL</h2>
+
+    <input type="text" id="vidInput" placeholder="Dán Link Youtube hoặc ID...">
+    
+    <div class="control-row">
+        <button onclick="loadVideo()" style="flex:1;">► PHÁT</button>
+        <button onclick="pasteLink()" style="flex:1;">DÁN</button>
+    </div>
+
+    <div id="player-container">
+        <div id="player"></div>
+    </div>
+
+    <div class="status">Đang xem: <span id="timeDisplay">00:00</span></div>
+    
+    <div class="control-row">
+        <button onclick="seek(-60)">⏪ 1p</button>
+        <button onclick="seek(-10)">⏪ 10s</button>
+        <button onclick="togglePlay()">⏯ STOP</button>
+        <button onclick="seek(10)">10s ⏩</button>
+        <button onclick="seek(60)">1p ⏩</button>
+    </div>
+
+    <button class="btn-download" onclick="downloadCurrent()">⬇️ TẢI VIDEO NÀY (MP4)</button>
+
+    <script>
+        var player;
+        var currentVideoId = '';
+
+        // --- PHẦN 1: CÀI ĐẶT YOUTUBE ---
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                videoId: '', 
+                playerVars: { 'playsinline': 1, 'controls': 1 },
+                events: { 'onStateChange': onPlayerStateChange }
+            });
+        }
+
+        // --- PHẦN 2: XỬ LÝ LINK & PHÁT ---
+        function loadVideo() {
+            var input = document.getElementById('vidInput').value;
+            if(!input) return alert("Chưa nhập link sếp ơi!");
+
+            // Lọc lấy ID video từ link
+            var vidId = input;
+            if (input.includes('v=')) vidId = input.split('v=')[1].split('&')[0];
+            else if (input.includes('youtu.be/')) vidId = input.split('youtu.be/')[1].split('?')[0];
+            
+            currentVideoId = vidId;
+
+            // Kiểm tra lịch sử xem cũ
+            var savedTime = localStorage.getItem('yt_' + vidId);
+            var startAt = savedTime ? parseFloat(savedTime) : 0;
+
+            player.loadVideoById(vidId, startAt);
+            if(savedTime) console.log("Đã khôi phục đoạn cũ: " + startAt);
+        }
+
+        // --- PHẦN 3: ĐIỀU KHIỂN ---
+        function seek(seconds) {
+            if(player && player.getCurrentTime) {
+                var t = player.getCurrentTime() + seconds;
+                player.seekTo(t, true);
+            }
+        }
+
+        function togglePlay() {
+            if(player) {
+                var state = player.getPlayerState();
+                if (state == 1) player.pauseVideo();
+                else player.playVideo();
+            }
+        }
+
+        // --- PHẦN 4: TỰ ĐỘNG LƯU THỜI GIAN (MỖI 5 GIÂY) ---
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                setInterval(function(){
+                    if(player && player.getCurrentTime) {
+                        var t = player.getCurrentTime();
+                        // Hiển thị dạng phút:giây
+                        var m = Math.floor(t / 60);
+                        var s = Math.floor(t % 60);
+                        document.getElementById('timeDisplay').innerText = m + ":" + (s < 10 ? '0' : '') + s;
+                        
+                        // Lưu vào bộ nhớ máy
+                        if(currentVideoId) localStorage.setItem('yt_' + currentVideoId, t);
+                    }
+                }, 5000);
+            }
+        }
+
+        // --- PHẦN 5: TẢI VIDEO ---
+        function downloadCurrent() {
+            var input = document.getElementById('vidInput').value;
+            if(input) {
+                // Gọi về Server để tải
+                window.location.href = '/download?url=' + encodeURIComponent(input);
+            } else {
+                alert("Nhập link vào rồi mới tải được chứ sếp!");
+            }
+        }
+        
+        async function pasteLink() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('vidInput').value = text;
+            } catch (err) {
+                alert("Máy này không hỗ trợ dán tự động, sếp chịu khó bấm Paste thủ công nhé!");
+            }
+        }
+    </script>
+</body>
+</html>
