@@ -3,80 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA TUBEMATE</title>
+    <title>HERA VIP PLAYER</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 5px; margin: 0; }
+        .search-box { display: flex; gap: 2px; margin-bottom: 5px; }
+        input { flex: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #0f0; }
+        button { background: #050; color: #fff; border: 1px solid #0f0; font-weight: bold; }
         
-        /* THANH TÌM KIẾM */
-        .search-box { display: flex; gap: 5px; margin-bottom: 10px; }
-        input { flex: 1; padding: 8px; background: #222; color: #fff; border: 1px solid #0f0; }
-        button { background: #004400; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
-        
-        /* DANH SÁCH VIDEO */
-        #results { text-align: left; }
         .video-item { 
-            border: 1px solid #333; 
-            margin-bottom: 5px; 
-            padding: 5px; 
+            border-bottom: 1px solid #333; 
+            padding: 5px 0; 
             display: flex; 
-            align-items: center; 
-            gap: 10px;
-            background: #111;
+            gap: 5px; 
         }
-        .video-item:focus, .video-item:hover { background: #333; border-color: #0f0; } /* Hiệu ứng khi dùng phím điều hướng */
-        
-        img { width: 80px; height: 60px; object-fit: cover; }
-        .info { flex: 1; }
-        .title { font-size: 14px; color: white; display: block; height: 36px; overflow: hidden; }
-        .duration { font-size: 12px; color: yellow; }
+        img { width: 70px; height: 50px; object-fit: cover; border: 1px solid #333; }
+        .info { flex: 1; overflow: hidden; }
+        .title { font-size: 13px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .meta { font-size: 11px; color: #888; }
         
         /* NÚT TẢI */
-        .actions { display: flex; flex-direction: column; gap: 5px; }
-        .btn-dl { font-size: 11px; padding: 5px; text-decoration: none; color: white; background: #b00; display: block; text-align: center; }
-        .btn-3gp { background: #b00; }
-        .btn-mp4 { background: #00b; }
+        .btn-group { display: flex; gap: 2px; margin-top: 3px; }
+        .btn-dl { 
+            flex: 1; 
+            font-size: 10px; 
+            padding: 4px; 
+            text-align: center; 
+            text-decoration: none; 
+            color: #000; 
+            font-weight: bold;
+        }
+        .btn-sumo { background: #fa0; } /* Màu cam cho Sumo */
+        .btn-hera { background: #0ff; } /* Màu xanh ngọc cho Hera */
     </style>
 </head>
 <body>
 
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Tìm video (Sơn Tùng, thời sự...)" onkeypress="handleEnter(event)">
+        <input type="text" id="searchInput" placeholder="Tìm..." onkeypress="if(event.key==='Enter') doSearch()">
         <button onclick="doSearch()">TÌM</button>
     </div>
 
     <div id="results">
-        <p style="text-align:center">Nhập từ khóa để tìm...</p>
+        <div style="text-align:center; color:#555; margin-top:20px;">
+            Nhập tên video rồi bấm TÌM<br>
+            (Lịch sử đang bảo trì)
+        </div>
     </div>
 
     <script>
-        function handleEnter(e) { if(e.key === 'Enter') doSearch(); }
-
         async function doSearch() {
-            const query = document.getElementById('searchInput').value;
-            document.getElementById('results').innerHTML = '<p>Đang tìm...</p>';
+            const q = document.getElementById('searchInput').value;
+            if(!q) return;
+            document.getElementById('results').innerHTML = 'Đang tìm...';
             
             try {
-                const res = await fetch('/api/search?q=' + encodeURIComponent(query));
-                const videos = await res.json();
+                const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+                const data = await res.json();
                 
                 let html = '';
-                videos.forEach(v => {
+                data.forEach(v => {
                     html += `
-                    <div class="video-item" tabindex="0">
+                    <div class="video-item">
                         <img src="${v.thumbnail}">
                         <div class="info">
                             <span class="title">${v.title}</span>
-                            <span class="duration">${v.duration}</span>
-                        </div>
-                        <div class="actions">
-                            <a href="/download?id=${v.id}&type=3gp" class="btn-dl btn-3gp">TẢI 3GP (Sumo)</a>
-                            <a href="/download?id=${v.id}&type=mp4" class="btn-dl btn-mp4">TẢI MP4 (Hera)</a>
+                            <div class="meta">⏱ ${v.duration}</div>
+                            <div class="btn-group">
+                                <a href="/download?id=${v.id}&mode=sumo" class="btn-dl btn-sumo">TẢI 3GP (Sumo)</a>
+                                <a href="/download?id=${v.id}&mode=hera" class="btn-dl btn-hera">TẢI MP4 (Hera)</a>
+                            </div>
                         </div>
                     </div>`;
                 });
                 document.getElementById('results').innerHTML = html;
-            } catch (err) {
-                document.getElementById('results').innerHTML = '<p>Lỗi: ' + err + '</p>';
+            } catch (e) {
+                document.getElementById('results').innerHTML = 'Lỗi: ' + e;
             }
         }
     </script>
