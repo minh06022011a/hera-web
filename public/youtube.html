@@ -6,60 +6,61 @@
     <title>HERA VIP</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; margin: 0; text-align: center; }
-        .search-box { display: flex; gap: 2px; margin-bottom: 5px; }
-        input { flex: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #0f0; }
-        button { background: #050; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
-        .btn-history { background: #550; width: 100%; margin-bottom: 5px; }
-
-        .video-item { 
-            border-bottom: 1px solid #333; padding: 5px 0; display: flex; gap: 5px; text-align: left;
-        }
-        img { width: 70px; height: 50px; object-fit: cover; border: 1px solid #333; }
-        .info { flex: 1; overflow: hidden; }
-        .title { font-size: 13px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .meta { font-size: 11px; color: #888; }
+        input { width: 95%; padding: 5px; background: #222; color: #fff; border: 1px solid #0f0; margin-bottom: 5px; }
+        button { background: #050; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; padding: 5px; width: 100%; margin-bottom: 5px; }
         
-        .btn-group { display: flex; gap: 2px; margin-top: 3px; }
-        .btn-dl { flex: 1; font-size: 10px; padding: 4px; text-align: center; text-decoration: none; color: #000; font-weight: bold; }
-        .btn-sumo { background: #fa0; } 
-        .btn-hera { background: #0ff; }
+        .video-item { border-bottom: 1px solid #333; padding: 10px 0; text-align: left; }
+        .thumb-box { position: relative; width: 100%; height: auto; margin-bottom: 5px; text-align: center; }
+        img { width: 120px; height: 90px; object-fit: cover; border: 1px solid #333; }
+        
+        /* KHUNG XEM VIDEO */
+        .preview-frame { width: 100%; height: 200px; display: none; border: 1px solid white; }
+        
+        .info { overflow: hidden; }
+        .title { font-size: 14px; color: white; font-weight: bold; display: block; margin-bottom: 5px; }
+        .btn-dl { display: inline-block; width: 48%; background: #333; color: #fff; text-decoration: none; font-size: 11px; padding: 5px 0; margin-top: 2px; text-align: center; border: 1px solid #444; }
+        .btn-watch { width: 100%; background: #b00; color: white; font-weight: bold; font-size: 13px; margin-bottom: 5px; cursor: pointer; border: 1px solid red; padding: 5px 0; display: block; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Tìm video..." onkeypress="if(event.key==='Enter') doSearch()">
-        <button onclick="doSearch()">TÌM</button>
-    </div>
-    
-    <button class="btn-history" onclick="loadHistory()">🕒 XEM LỊCH SỬ ĐÃ TẢI</button>
+    <input type="text" id="searchInput" placeholder="Tìm kiếm video..." onkeypress="if(event.key==='Enter') doSearch()">
+    <button onclick="doSearch()">🔍 TÌM KIẾM</button>
 
     <div id="results">
-        <div style="text-align:center; color:#555; margin-top:20px;">
-            Nhập tên rồi bấm TÌM<br>hoặc bấm Xem Lịch Sử
-        </div>
+        <p style="color:#555">Nhập tên video để tìm & xem...</p>
     </div>
 
     <script>
-        // Hàm render danh sách video ra màn hình
         function renderVideos(list) {
             let html = '';
             list.forEach(v => {
                 html += `
                 <div class="video-item">
-                    <img src="${v.thumbnail}">
                     <div class="info">
                         <span class="title">${v.title}</span>
-                        <div class="meta">⏱ ${v.duration}</div>
-                        <div class="btn-group">
-                            <a href="/download?id=${v.id}&mode=sumo" class="btn-dl btn-sumo">SUMO (3GP)</a>
-                            <a href="/download?id=${v.id}&mode=hera" class="btn-dl btn-hera">HERA (MP4)</a>
+                        
+                        <div class="thumb-box" id="box-${v.id}">
+                            <img src="${v.thumbnail}" onclick="playPreview('${v.id}')">
+                            <button class="btn-watch" onclick="playPreview('${v.id}')">▶ XEM THỬ</button>
                         </div>
-                        <a href="/download?id=${v.id}&mode=direct" class="btn-dl" style="background:#0b0; margin-top:2px;">🚀 TẢI NHANH</a>
+
+                        <div style="display:flex; flex-wrap:wrap; gap:2px;">
+                            <a href="/download?id=${v.id}&mode=direct" class="btn-dl" style="background:#0b0;">🚀 TẢI NHANH</a>
+                            <a href="/download?id=${v.id}&mode=hera" class="btn-dl" style="background:#0ff; color:black;">TẢI MP4</a>
+                            <a href="/download?id=${v.id}&mode=sumo" class="btn-dl" style="background:#fa0; color:black;">TẢI 3GP</a>
+                        </div>
                     </div>
                 </div>`;
             });
             document.getElementById('results').innerHTML = html;
+        }
+
+        // HÀM BẬT VIDEO XEM THỬ
+        function playPreview(vidId) {
+            const box = document.getElementById('box-' + vidId);
+            // Thay ảnh bằng Youtube Player
+            box.innerHTML = `<iframe class="preview-frame" style="display:block" src="https://www.youtube.com/embed/${vidId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
         }
 
         async function doSearch() {
@@ -69,29 +70,8 @@
             try {
                 const res = await fetch('/api/search?q=' + encodeURIComponent(q));
                 const data = await res.json();
-                if (data.error) {
-                    document.getElementById('results').innerHTML = '<p style="color:red">'+data.error+'</p>';
-                } else {
-                    renderVideos(data);
-                }
-            } catch (e) {
-                document.getElementById('results').innerHTML = '<p style="color:red">Lỗi mạng: '+e.message+'</p>';
-            }
-        }
-
-        async function loadHistory() {
-            document.getElementById('results').innerHTML = '<p style="color:yellow">Đang tải lịch sử...</p>';
-            try {
-                const res = await fetch('/api/history');
-                const data = await res.json();
-                if(data.length === 0) {
-                    document.getElementById('results').innerHTML = '<p>Chưa có lịch sử. Hãy tải thử 1 video!</p>';
-                } else {
-                    renderVideos(data);
-                }
-            } catch (e) {
-                document.getElementById('results').innerHTML = '<p style="color:red">Lỗi xem lịch sử</p>';
-            }
+                renderVideos(data);
+            } catch (e) { document.getElementById('results').innerHTML = 'Lỗi: ' + e; }
         }
     </script>
 </body>
