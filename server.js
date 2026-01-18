@@ -10,7 +10,27 @@ const fs = require('fs');
 app.use(cors());
 app.use(express.static('public'));
 
-// Load Cookie (Nếu có)
+// FILE LƯU LỊCH SỬ RIÊNG CỦA WEB
+const HISTORY_FILE = 'history.json';
+
+// Hàm lưu lịch sử
+function saveToHistory(videoInfo) {
+    let history = [];
+    try {
+        if (fs.existsSync(HISTORY_FILE)) {
+            history = JSON.parse(fs.readFileSync(HISTORY_FILE));
+        }
+        // Xóa video trùng lặp cũ
+        history = history.filter(v => v.id !== videoInfo.id);
+        // Thêm video mới vào đầu danh sách
+        history.unshift(videoInfo);
+        // Chỉ giữ lại 50 video gần nhất
+        if (history.length > 50) history.length = 50;
+        fs.writeFileSync(HISTORY_FILE, JSON.stringify(history));
+    } catch (e) { console.log("Lỗi lưu history: " + e.message); }
+}
+
+// Load Cookie (Để tải video không bị chặn)
 let agent = null;
 try {
     if (fs.existsSync('cookie.json')) {
@@ -18,33 +38,62 @@ try {
         agent = ytdl.createAgent(cookies);
         console.log("--> Đã nạp Cookie thành công!");
     }
-} catch (err) { console.log("Lỗi đọc cookie: " + err.message); }
+} catch (err) {}
 
-// 1. API TÌM KIẾM
+// 1. API TÌM KIẾM (ĐÃ SỬA LỖI READING URL)
 app.get('/api/search', async (req, res) => {
     try {
         const query = req.query.q;
         if (!query) return res.json([]);
-        const filters1 = await ytsr.getFilters(query);
-        const filter1 = filters1.get('Type').get('Video');
-        const searchResults = await ytsr(filter1.url, { limit: 15 });
-        res.json(searchResults.items.map(item => ({
-            title: item.title,
-            id: item.id,
-            thumbnail: item.bestThumbnail.url,
-            duration: item.duration
-        })));
-    } catch (e) { res.status(500).json({ error: e.message }); }
+
+        // TÌM KIẾM TRỰC TIẾP (Bỏ qua bước getFilters gây lỗi)
+        const searchResults = await ytsr(query, { limit: 20 });
+        
+        // Lọc kết quả chỉ lấy Video (bỏ qua Playlist/Channel)
+        const videos = searchResults.items
+            .filter(item => item.type === 'video')
+            .map(item => ({
+                title: item.title,
+                id: item.id,
+                thumbnail: item.bestThumbnail ? item.bestThumbnail.url : item.thumbnails[0].url, // Fix lỗi thiếu ảnh
+                duration: item.duration || '??:??'
+            }));
+
+        res.json(videos);
+    } catch (e) { 
+        console.error(e);
+        res.status(500).json({ error: "Lỗi tìm kiếm: " + e.message }); 
+    }
 });
 
-// 2. API TẢI VIDEO (FIXED)
+// 2. API LẤY LỊCH SỬ (LOCAL)
+app.get('/api/history', (req, res) => {
+    if (fs.existsSync(HISTORY_FILE)) {
+        res.sendFile(path.join(__dirname, HISTORY_FILE));
+    } else {
+        res.json([]);
+    }
+});
+
+// 3. API TẢI VIDEO (CÓ LƯU LỊCH SỬ)
 app.get('/download', async (req, res) => {
     try {
         const videoId = req.query.id;
         const mode = req.query.mode || 'sumo';
         const url = `https://www.youtube.com/watch?v=${videoId}`;
-        
-        // CHẾ ĐỘ TẢI NHANH (DIRECT)
+
+        // Lấy thông tin video để lưu vào lịch sử
+        try {
+            const info = await ytdl.getBasicInfo(url, { agent });
+            saveToHistory({
+                title: info.videoDetails.title,
+                id: videoId,
+                thumbnail: info.videoDetails.thumbnails[0].url,
+                duration: info.videoDetails.lengthSeconds + 's' // Lưu tạm giây
+            });
+        } catch(e) {}
+
+        // --- XỬ LÝ TẢI ---
         if (mode === 'direct') {
             const info = await ytdl.getInfo(url);
             const format = ytdl.chooseFormat(info.formats, { quality: '18' });
@@ -53,10 +102,7 @@ app.get('/download', async (req, res) => {
             return;
         }
 
-        // CHẾ ĐỘ CONVERT
         const ext = mode === 'sumo' ? '3gp' : 'mp4';
-        
-        // --- ĐÃ SỬA LỖI THIẾU DẤU HUYỀN Ở DÒNG DƯỚI NÀY ---
         res.header('Content-Disposition', `attachment; filename="video_${mode}_${videoId}.${ext}"`);
 
         let stream = ytdl(url, { agent: agent, quality: 'lowest' });
@@ -65,7 +111,6 @@ app.get('/download', async (req, res) => {
         if (mode === 'sumo') {
             command.size('176x144').videoCodec('h263').audioCodec('aac').audioBitrate('32k').format('3gp');
         } else {
-            // HERA MODE
             command.size('320x240').videoCodec('libx264')
                 .addOption('-profile:v', 'baseline').addOption('-level', '3.0')
                 .audioCodec('aac').videoBitrate('250k').format('mp4');
@@ -73,10 +118,7 @@ app.get('/download', async (req, res) => {
 
         command.on('error', (err) => console.log('Lỗi convert: ' + err.message)).pipe(res, { end: true });
 
-    } catch (e) {
-        console.log(e);
-        res.status(500).send("Lỗi: " + e.message);
-    }
+    } catch (e) { res.status(500).send("Lỗi: " + e.message); }
 });
 
 // Redirect
