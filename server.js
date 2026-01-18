@@ -4,7 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const ytdl = require('@distube/ytdl-core');
 const ytsr = require('ytsr');
-const ytpl = require('ytpl');
+const ytpl = require('ytpl'); // Đây là cái thư viện sếp vừa cài thêm
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 
@@ -70,7 +70,7 @@ app.get('/download', async (req, res) => {
         }
 
         const ext = mode === 'sumo' ? '3gp' : 'mp4';
-        // --- DÒNG NÀY ĐÃ SỬA LỖI CÚ PHÁP ---
+        // Dòng này phải dùng dấu huyền (backtick) mới đúng
         res.header('Content-Disposition', `attachment; filename="video_${mode}_${videoId}.${ext}"`);
 
         let stream = ytdl(url, { agent: agent, quality: 'lowest' });
