@@ -1,24 +1,92 @@
-<div id="results">
-    <div style="text-align:center; color:#555; margin-top:20px;">
-        Nhập tên video rồi bấm TÌM
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERA VIP PLAYER</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 5px; margin: 0; text-align: center; }
+        .search-box { display: flex; gap: 2px; margin-bottom: 5px; }
+        input { flex: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #0f0; }
+        button { background: #050; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
+        
+        .video-item { 
+            border-bottom: 1px solid #333; 
+            padding: 5px 0; 
+            display: flex; 
+            gap: 5px; 
+            text-align: left;
+        }
+        img { width: 70px; height: 50px; object-fit: cover; border: 1px solid #333; }
+        .info { flex: 1; overflow: hidden; }
+        .title { font-size: 13px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .meta { font-size: 11px; color: #888; }
+        
+        .btn-group { display: flex; gap: 2px; margin-top: 3px; }
+        .btn-dl { 
+            flex: 1; 
+            font-size: 10px; 
+            padding: 4px; 
+            text-align: center; 
+            text-decoration: none; 
+            color: #000; 
+            font-weight: bold;
+        }
+        .btn-sumo { background: #fa0; } 
+        .btn-hera { background: #0ff; }
+    </style>
+</head>
+<body>
 
-<script>
-    // ... (đoạn trên giữ nguyên) ...
-    // Sửa đoạn html += trong vòng lặp forEach:
-    html += `
-    <div class="video-item">
-        <img src="${v.thumbnail}">
-        <div class="info">
-            <span class="title">${v.title}</span>
-            <div class="meta">⏱ ${v.duration}</div>
-            <div class="btn-group">
-                <a href="/download?id=${v.id}&mode=sumo" class="btn-dl btn-sumo">SUMO (3GP)</a>
-                <a href="/download?id=${v.id}&mode=hera" class="btn-dl btn-hera">HERA (MP4)</a>
-            </div>
-            <a href="/download?id=${v.id}&mode=direct" class="btn-dl" style="background:#0b0; margin-top:2px;">🚀 TẢI NHANH (MP4 GỐC)</a>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Tìm..." onkeypress="if(event.key==='Enter') doSearch()">
+        <button onclick="doSearch()">TÌM</button>
+    </div>
+
+    <div id="results">
+        <div style="text-align:center; color:#555; margin-top:20px;">
+            Nhập tên video rồi bấm TÌM
         </div>
-    </div>`;
-    // ...
-</script>
+    </div>
+
+    <script>
+        async function doSearch() {
+            const q = document.getElementById('searchInput').value;
+            if(!q) return;
+            
+            const resultDiv = document.getElementById('results');
+            resultDiv.innerHTML = '<p style="color:yellow">Đang kết nối Server...</p>';
+            
+            try {
+                const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+                const data = await res.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = '<p style="color:red; font-weight:bold;">LỖI SERVER:<br>' + data.error + '</p>';
+                    return;
+                }
+
+                let html = '';
+                data.forEach(v => {
+                    html += `
+                    <div class="video-item">
+                        <img src="${v.thumbnail}">
+                        <div class="info">
+                            <span class="title">${v.title}</span>
+                            <div class="meta">⏱ ${v.duration}</div>
+                            <div class="btn-group">
+                                <a href="/download?id=${v.id}&mode=sumo" class="btn-dl btn-sumo">SUMO (3GP)</a>
+                                <a href="/download?id=${v.id}&mode=hera" class="btn-dl btn-hera">HERA (MP4)</a>
+                            </div>
+                            <a href="/download?id=${v.id}&mode=direct" class="btn-dl" style="background:#0b0; margin-top:2px;">🚀 TẢI NHANH (MP4)</a>
+                        </div>
+                    </div>`;
+                });
+                resultDiv.innerHTML = html;
+            } catch (e) {
+                resultDiv.innerHTML = '<p style="color:red">Lỗi Mạng:<br>' + e.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

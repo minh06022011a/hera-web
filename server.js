@@ -55,7 +55,8 @@ app.get('/download', async (req, res) => {
 
         // CHẾ ĐỘ CONVERT
         const ext = mode === 'sumo' ? '3gp' : 'mp4';
-        // --- DÒNG NÀY ĐÃ SỬA LẠI CHO ĐÚNG ---
+        
+        // --- ĐÃ SỬA LỖI THIẾU DẤU HUYỀN Ở DÒNG DƯỚI NÀY ---
         res.header('Content-Disposition', `attachment; filename="video_${mode}_${videoId}.${ext}"`);
 
         let stream = ytdl(url, { agent: agent, quality: 'lowest' });
@@ -64,7 +65,7 @@ app.get('/download', async (req, res) => {
         if (mode === 'sumo') {
             command.size('176x144').videoCodec('h263').audioCodec('aac').audioBitrate('32k').format('3gp');
         } else {
-            // HERA MODE (Nét hơn Sumo)
+            // HERA MODE
             command.size('320x240').videoCodec('libx264')
                 .addOption('-profile:v', 'baseline').addOption('-level', '3.0')
                 .audioCodec('aac').videoBitrate('250k').format('mp4');
