@@ -10,88 +10,94 @@ const fs = require('fs');
 app.use(cors());
 app.use(express.static('public'));
 
-// FILE LƯU LỊCH SỬ RIÊNG CỦA WEB
+// FILE LƯU LỊCH SỬ CỤC BỘ
 const HISTORY_FILE = 'history.json';
 
-// Hàm lưu lịch sử
+// Hàm lưu lịch sử (An toàn)
 function saveToHistory(videoInfo) {
     let history = [];
     try {
         if (fs.existsSync(HISTORY_FILE)) {
-            history = JSON.parse(fs.readFileSync(HISTORY_FILE));
+            const data = fs.readFileSync(HISTORY_FILE);
+            if (data.length > 0) history = JSON.parse(data);
         }
-        // Xóa video trùng lặp cũ
+        // Lọc bỏ video trùng (giữ lại cái mới nhất)
         history = history.filter(v => v.id !== videoInfo.id);
-        // Thêm video mới vào đầu danh sách
         history.unshift(videoInfo);
-        // Chỉ giữ lại 50 video gần nhất
-        if (history.length > 50) history.length = 50;
+        if (history.length > 50) history.length = 50; // Chỉ lưu 50 cái
         fs.writeFileSync(HISTORY_FILE, JSON.stringify(history));
     } catch (e) { console.log("Lỗi lưu history: " + e.message); }
 }
 
-// Load Cookie (Để tải video không bị chặn)
+// Load Cookie (Nếu có thì tốt, ko có vẫn chạy)
 let agent = null;
 try {
     if (fs.existsSync('cookie.json')) {
         const cookies = JSON.parse(fs.readFileSync('cookie.json'));
         agent = ytdl.createAgent(cookies);
-        console.log("--> Đã nạp Cookie thành công!");
+        console.log("--> Đã nạp Cookie!");
     }
 } catch (err) {}
 
-// 1. API TÌM KIẾM (ĐÃ SỬA LỖI READING URL)
+// 1. API TÌM KIẾM (BẢN BẤT TỬ - CHỐNG SẬP)
 app.get('/api/search', async (req, res) => {
     try {
         const query = req.query.q;
         if (!query) return res.json([]);
 
-        // TÌM KIẾM TRỰC TIẾP (Bỏ qua bước getFilters gây lỗi)
+        // Tìm kiếm
         const searchResults = await ytsr(query, { limit: 20 });
         
-        // Lọc kết quả chỉ lấy Video (bỏ qua Playlist/Channel)
+        // LỌC DỮ LIỆU RÁC (Quan trọng)
         const videos = searchResults.items
-            .filter(item => item.type === 'video')
-            .map(item => ({
-                title: item.title,
-                id: item.id,
-                thumbnail: item.bestThumbnail ? item.bestThumbnail.url : item.thumbnails[0].url, // Fix lỗi thiếu ảnh
-                duration: item.duration || '??:??'
-            }));
+            .filter(item => item && item.type === 'video') // Chỉ lấy Video
+            .map(item => {
+                // Dùng dấu ?. để nếu không có ảnh thì cũng ko được báo lỗi
+                return {
+                    title: item.title || 'Không tiêu đề',
+                    id: item.id,
+                    // Nếu không có ảnh thì lấy ảnh rỗng, ko crash
+                    thumbnail: item.bestThumbnail?.url || item.thumbnails?.[0]?.url || 'https://via.placeholder.com/150',
+                    duration: item.duration || '??:??'
+                };
+            });
 
         res.json(videos);
     } catch (e) { 
         console.error(e);
-        res.status(500).json({ error: "Lỗi tìm kiếm: " + e.message }); 
+        // Trả về danh sách rỗng thay vì lỗi chết người
+        res.json([]); 
     }
 });
 
-// 2. API LẤY LỊCH SỬ (LOCAL)
+// 2. API LỊCH SỬ
 app.get('/api/history', (req, res) => {
-    if (fs.existsSync(HISTORY_FILE)) {
-        res.sendFile(path.join(__dirname, HISTORY_FILE));
-    } else {
-        res.json([]);
-    }
+    try {
+        if (fs.existsSync(HISTORY_FILE)) {
+            res.sendFile(path.join(__dirname, HISTORY_FILE));
+        } else {
+            res.json([]); // Chưa có file thì trả về rỗng
+        }
+    } catch(e) { res.json([]); }
 });
 
-// 3. API TẢI VIDEO (CÓ LƯU LỊCH SỬ)
+// 3. API TẢI VIDEO
 app.get('/download', async (req, res) => {
     try {
         const videoId = req.query.id;
         const mode = req.query.mode || 'sumo';
         const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-        // Lấy thông tin video để lưu vào lịch sử
-        try {
-            const info = await ytdl.getBasicInfo(url, { agent });
+        // LƯU VÀO LỊCH SỬ KHI BẤM TẢI
+        // (Lấy info cơ bản để lưu tên và ảnh)
+        ytdl.getBasicInfo(url, { agent }).then(info => {
             saveToHistory({
                 title: info.videoDetails.title,
                 id: videoId,
-                thumbnail: info.videoDetails.thumbnails[0].url,
-                duration: info.videoDetails.lengthSeconds + 's' // Lưu tạm giây
+                thumbnail: info.videoDetails.thumbnails?.[0]?.url || '',
+                duration: 'Đã tải'
             });
-        } catch(e) {}
+        }).catch(err => console.log("Ko lấy dc info để lưu sử: " + err));
 
         // --- XỬ LÝ TẢI ---
         if (mode === 'direct') {
@@ -126,4 +132,4 @@ app.get('/', (req, res) => res.redirect('/youtube'));
 app.get('/youtube', (req, res) => res.sendFile(path.join(__dirname, 'public/youtube.html')));
 app.get('/game', (req, res) => res.sendFile(path.join(__dirname, 'public/games.html')));
 
-app.listen(process.env.PORT || 3000, () => console.log("Server đang chạy..."));
+app.listen(process.env.PORT || 3000, () => console.log("Server chạy ngon!"));
