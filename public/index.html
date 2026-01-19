@@ -3,106 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA TIME LINK</title>
+    <title>HERA SEARCH</title>
     <style>
-        body {
-            background-color: #000;
-            color: #0f0;
-            font-family: monospace;
-            padding: 10px;
-            text-align: center;
-        }
-        h2 { border-bottom: 1px solid #0f0; padding-bottom: 5px; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
-        /* Ô nhập liệu to rõ cho dễ bấm */
-        input {
-            width: 90%;
-            padding: 10px;
-            margin: 5px 0;
-            background: #222;
-            border: 1px solid #0f0;
-            color: white;
-            font-size: 16px;
-            text-align: center;
-        }
-        
-        /* Hàng nhập thời gian */
-        .time-row {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-        .time-input {
-            width: 40%;
-        }
+        /* Ô tìm kiếm */
+        .search-box { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        input[type="text"] { width: 90%; padding: 8px; background: #222; color: #fff; border: 1px solid #0f0; text-align: center; }
+        button.btn-search { width: 95%; padding: 8px; margin-top: 5px; background: #004400; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
 
-        button {
-            width: 95%;
-            padding: 12px;
-            margin-top: 15px;
-            background: #006400;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            border: 2px solid #0f0;
-            cursor: pointer;
-        }
-        button:active { background: #0f0; color: black; }
+        /* Danh sách kết quả */
+        .item { border: 1px solid #333; margin-bottom: 5px; padding: 5px; text-align: left; background: #111; }
+        .item img { width: 60px; height: 45px; object-fit: cover; float: left; margin-right: 5px; border: 1px solid #555; }
+        .item .title { font-size: 13px; color: white; display: block; overflow: hidden; height: 32px; }
+        .item .time { font-size: 11px; color: #888; }
+        .clear { clear: both; }
 
-        .note { margin-top: 20px; color: #888; font-size: 12px; }
+        /* Ô nhập giờ (Ẩn đi, bấm vào mới hiện) */
+        .time-box { display: none; margin-top: 5px; border-top: 1px dashed #555; padding-top: 5px; }
+        .time-inputs { display: flex; justify-content: center; gap: 5px; }
+        .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; }
+        .btn-go { width: 100%; background: #b00; color: white; border: none; padding: 5px; margin-top: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>TẠO LINK ĐÚNG GIỜ</h2>
-
-    <label>Dán Link hoặc ID Video:</label>
-    <input type="text" id="vidInput" placeholder="Ví dụ: v=AbCdEfGh...">
-
-    <label>Thời gian muốn xem:</label>
-    <div class="time-row">
-        <input type="number" id="minInput" class="time-input" placeholder="Phút" value="0">
-        <input type="number" id="secInput" class="time-input" placeholder="Giây" value="0">
+    <div class="search-box">
+        <input type="text" id="keyword" placeholder="Nhập tên video (Sơn Tùng, Thời sự...)" onkeypress="if(event.key=='Enter') timKiem()">
+        <button class="btn-search" onclick="timKiem()">🔍 TÌM KIẾM</button>
     </div>
 
-    <button onclick="moLink()">▶ XEM TIẾP</button>
-
-    <div class="note">
-        Nhập phút và giây sếp muốn tua tới.<br>
-        Web sẽ tự mở Youtube đúng đoạn đó.
+    <div id="ketqua">
+        <p style="color:#666">Nhập từ khóa để tìm...</p>
     </div>
 
     <script>
-        function moLink() {
-            // Lấy dữ liệu sếp nhập
-            var input = document.getElementById('vidInput').value;
-            var min = document.getElementById('minInput').value || 0;
-            var sec = document.getElementById('secInput').value || 0;
-
-            if (!input) {
-                alert("Sếp chưa nhập Link video kìa!");
-                return;
+        async function timKiem() {
+            var k = document.getElementById('keyword').value;
+            if(!k) return;
+            
+            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang tìm...</p>';
+            
+            try {
+                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
+                var data = await res.json();
+                
+                var html = '';
+                data.forEach(v => {
+                    // Mỗi video có một ID riêng để đóng mở ô nhập giờ
+                    html += `
+                    <div class="item">
+                        <img src="${v.img}">
+                        <span class="title">${v.title}</span>
+                        <span class="time">⏱ ${v.time}</span>
+                        <div class="clear"></div>
+                        
+                        <button onclick="hienOnhap('${v.id}')" style="width:100%; margin-top:5px; background:#333; color:white; border:1px solid #555;">▶ CHỌN BÀI NÀY</button>
+                        
+                        <div id="box-${v.id}" class="time-box">
+                            <div class="time-inputs">
+                                <input type="number" id="m-${v.id}" placeholder="Phút" value="0">
+                                <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
+                            </div>
+                            <button class="btn-go" onclick="xemNgay('${v.id}')">🚀 XEM TỪ ĐOẠN NÀY</button>
+                        </div>
+                    </div>`;
+                });
+                document.getElementById('ketqua').innerHTML = html;
+            } catch (e) {
+                document.getElementById('ketqua').innerHTML = '<p style="color:red">Lỗi mạng rồi sếp!</p>';
             }
+        }
 
-            // 1. Lọc lấy ID video (Dù sếp dán link dài hay ngắn đều bắt được ID)
-            var vidId = input;
-            if (input.includes('v=')) {
-                vidId = input.split('v=')[1].split('&')[0];
-            } else if (input.includes('youtu.be/')) {
-                vidId = input.split('youtu.be/')[1].split('?')[0];
-            }
+        function hienOnhap(id) {
+            // Ẩn tất cả các ô khác
+            var all = document.querySelectorAll('.time-box');
+            all.forEach(div => div.style.display = 'none');
+            // Hiện ô của video này
+            document.getElementById('box-' + id).style.display = 'block';
+        }
 
-            // 2. Tính tổng số giây (Youtube cần đơn vị là giây)
-            var totalSeconds = (parseInt(min) * 60) + parseInt(sec);
-
-            // 3. Tạo link Youtube chuẩn Mobile
-            // Dùng m.youtube.com để nhẹ máy Hera
-            var finalLink = "https://m.youtube.com/watch?v=" + vidId + "&t=" + totalSeconds + "s";
-
-            // 4. Mở link
-            window.location.href = finalLink;
+        function xemNgay(id) {
+            var m = document.getElementById('m-' + id).value || 0;
+            var s = document.getElementById('s-' + id).value || 0;
+            var total = (parseInt(m) * 60) + parseInt(s);
+            
+            // Chuyển sang Youtube
+            window.location.href = "https://m.youtube.com/watch?v=" + id + "&t=" + total + "s";
         }
     </script>
-
 </body>
 </html>
