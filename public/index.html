@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERA TIME LINK</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 10px;
+            text-align: center;
+        }
+        h2 { border-bottom: 1px solid #0f0; padding-bottom: 5px; }
+        
+        /* Ô nhập liệu to rõ cho dễ bấm */
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #222;
+            border: 1px solid #0f0;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        /* Hàng nhập thời gian */
+        .time-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .time-input {
+            width: 40%;
+        }
+
+        button {
+            width: 95%;
+            padding: 12px;
+            margin-top: 15px;
+            background: #006400;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            border: 2px solid #0f0;
+            cursor: pointer;
+        }
+        button:active { background: #0f0; color: black; }
+
+        .note { margin-top: 20px; color: #888; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <h2>TẠO LINK ĐÚNG GIỜ</h2>
+
+    <label>Dán Link hoặc ID Video:</label>
+    <input type="text" id="vidInput" placeholder="Ví dụ: v=AbCdEfGh...">
+
+    <label>Thời gian muốn xem:</label>
+    <div class="time-row">
+        <input type="number" id="minInput" class="time-input" placeholder="Phút" value="0">
+        <input type="number" id="secInput" class="time-input" placeholder="Giây" value="0">
+    </div>
+
+    <button onclick="moLink()">▶ XEM TIẾP</button>
+
+    <div class="note">
+        Nhập phút và giây sếp muốn tua tới.<br>
+        Web sẽ tự mở Youtube đúng đoạn đó.
+    </div>
+
+    <script>
+        function moLink() {
+            // Lấy dữ liệu sếp nhập
+            var input = document.getElementById('vidInput').value;
+            var min = document.getElementById('minInput').value || 0;
+            var sec = document.getElementById('secInput').value || 0;
+
+            if (!input) {
+                alert("Sếp chưa nhập Link video kìa!");
+                return;
+            }
+
+            // 1. Lọc lấy ID video (Dù sếp dán link dài hay ngắn đều bắt được ID)
+            var vidId = input;
+            if (input.includes('v=')) {
+                vidId = input.split('v=')[1].split('&')[0];
+            } else if (input.includes('youtu.be/')) {
+                vidId = input.split('youtu.be/')[1].split('?')[0];
+            }
+
+            // 2. Tính tổng số giây (Youtube cần đơn vị là giây)
+            var totalSeconds = (parseInt(min) * 60) + parseInt(sec);
+
+            // 3. Tạo link Youtube chuẩn Mobile
+            // Dùng m.youtube.com để nhẹ máy Hera
+            var finalLink = "https://m.youtube.com/watch?v=" + vidId + "&t=" + totalSeconds + "s";
+
+            // 4. Mở link
+            window.location.href = finalLink;
+        }
+    </script>
+
+</body>
+</html>
