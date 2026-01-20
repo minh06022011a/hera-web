@@ -3,33 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA SEARCH</title>
+    <title>HERA SEARCH PRO</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
-        /* Ô tìm kiếm */
         .search-box { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         input[type="text"] { width: 90%; padding: 8px; background: #222; color: #fff; border: 1px solid #0f0; text-align: center; }
         button.btn-search { width: 95%; padding: 8px; margin-top: 5px; background: #004400; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
 
-        /* Danh sách kết quả */
         .item { border: 1px solid #333; margin-bottom: 5px; padding: 5px; text-align: left; background: #111; }
         .item img { width: 60px; height: 45px; object-fit: cover; float: left; margin-right: 5px; border: 1px solid #555; }
         .item .title { font-size: 13px; color: white; display: block; overflow: hidden; height: 32px; }
         .item .time { font-size: 11px; color: #888; }
         .clear { clear: both; }
 
-        /* Ô nhập giờ (Ẩn đi, bấm vào mới hiện) */
         .time-box { display: none; margin-top: 5px; border-top: 1px dashed #555; padding-top: 5px; }
-        .time-inputs { display: flex; justify-content: center; gap: 5px; }
-        .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; }
-        .btn-go { width: 100%; background: #b00; color: white; border: none; padding: 5px; margin-top: 5px; cursor: pointer; }
+        .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+        .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
+        
+        /* 2 NÚT BẤM MỚI */
+        .btn-app { width: 100%; background: #c00; color: white; border: 1px solid red; padding: 10px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
+        .btn-web { width: 100%; background: #333; color: #ccc; border: 1px solid #555; padding: 6px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="search-box">
-        <input type="text" id="keyword" placeholder="Nhập tên video (Sơn Tùng, Thời sự...)" onkeypress="if(event.key=='Enter') timKiem()">
+        <input type="text" id="keyword" placeholder="Nhập tên video..." onkeypress="if(event.key=='Enter') timKiem()">
         <button class="btn-search" onclick="timKiem()">🔍 TÌM KIẾM</button>
     </div>
 
@@ -41,55 +41,58 @@
         async function timKiem() {
             var k = document.getElementById('keyword').value;
             if(!k) return;
-            
             document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang tìm...</p>';
-            
             try {
                 var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
                 var data = await res.json();
-                
                 var html = '';
                 data.forEach(v => {
-                    // Mỗi video có một ID riêng để đóng mở ô nhập giờ
                     html += `
                     <div class="item">
                         <img src="${v.img}">
                         <span class="title">${v.title}</span>
                         <span class="time">⏱ ${v.time}</span>
                         <div class="clear"></div>
-                        
-                        <button onclick="hienOnhap('${v.id}')" style="width:100%; margin-top:5px; background:#333; color:white; border:1px solid #555;">▶ CHỌN BÀI NÀY</button>
+                        <button onclick="hienOnhap('${v.id}')" style="width:100%; margin-top:5px; background:#222; color:white; border:1px solid #444;">🔽 CHỌN BÀI NÀY</button>
                         
                         <div id="box-${v.id}" class="time-box">
                             <div class="time-inputs">
                                 <input type="number" id="m-${v.id}" placeholder="Phút" value="0">
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
-                            <button class="btn-go" onclick="xemNgay('${v.id}')">🚀 XEM TỪ ĐOẠN NÀY</button>
+                            <button class="btn-app" onclick="moApp('${v.id}')">🚀 MỞ APP (ĐÚNG GIỜ)</button>
+                            <button class="btn-web" onclick="moWeb('${v.id}')">🌐 XEM TRÊN WEB</button>
                         </div>
                     </div>`;
                 });
                 document.getElementById('ketqua').innerHTML = html;
-            } catch (e) {
-                document.getElementById('ketqua').innerHTML = '<p style="color:red">Lỗi mạng rồi sếp!</p>';
-            }
+            } catch (e) { document.getElementById('ketqua').innerHTML = '<p style="color:red">Lỗi mạng!</p>'; }
         }
 
         function hienOnhap(id) {
-            // Ẩn tất cả các ô khác
-            var all = document.querySelectorAll('.time-box');
-            all.forEach(div => div.style.display = 'none');
-            // Hiện ô của video này
+            document.querySelectorAll('.time-box').forEach(d => d.style.display = 'none');
             document.getElementById('box-' + id).style.display = 'block';
         }
 
-        function xemNgay(id) {
+        // HÀM TÍNH TỔNG GIÂY
+        function getSeconds(id) {
             var m = document.getElementById('m-' + id).value || 0;
             var s = document.getElementById('s-' + id).value || 0;
-            var total = (parseInt(m) * 60) + parseInt(s);
-            
-            // Chuyển sang Youtube
-            window.location.href = "https://m.youtube.com/watch?v=" + id + "&t=" + total + "s";
+            return (parseInt(m) * 60) + parseInt(s);
+        }
+
+        // CÁCH 1: DÙNG LINK YOUTU.BE -> KÍCH HOẠT APP
+        function moApp(id) {
+            var total = getSeconds(id);
+            // Link này sẽ hỏi "Mở bằng Youtube?"
+            window.location.href = "https://youtu.be/" + id + "?t=" + total;
+        }
+
+        // CÁCH 2: DÙNG LINK EMBED -> XEM TRÊN TRÌNH DUYỆT
+        function moWeb(id) {
+            var total = getSeconds(id);
+            // Link này ép chạy trình duyệt (như cũ)
+            window.location.href = "https://www.youtube.com/embed/" + id + "?start=" + total + "&autoplay=1";
         }
     </script>
 </body>
