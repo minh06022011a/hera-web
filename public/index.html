@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA LITE</title>
+    <title>HERA MULTI-SERVER</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
@@ -21,10 +21,11 @@
         .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
         .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
         
-        /* NÚT BẤM MỚI */
-        .btn-lite { width: 100%; background: #0066cc; color: white; border: 1px solid #0099ff; padding: 12px; cursor: pointer; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        .btn-backup { width: 100%; background: #333; color: #888; border: 1px solid #555; padding: 5px; cursor: pointer; font-size: 11px; }
-        .note { font-size: 10px; color: #666; font-style: italic; }
+        /* CÁC NÚT SERVER */
+        .btn-sv { width: 100%; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; margin-bottom: 3px; font-size: 12px; }
+        .sv1 { background: #0066cc; border: 1px solid #0099ff; } /* Xanh dương */
+        .sv2 { background: #cc6600; border: 1px solid #ff9900; } /* Cam */
+        .sv3 { background: #333333; border: 1px solid #666666; color: #ccc; } /* Xám */
     </style>
 </head>
 <body>
@@ -35,7 +36,7 @@
     </div>
 
     <div id="ketqua">
-        <p style="color:#666">Nhập từ khóa để tìm...</p>
+        <p style="color:#666">Nhập từ khóa...</p>
     </div>
 
     <script>
@@ -62,10 +63,11 @@
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
                             
-                            <button class="btn-lite" onclick="moLite('${v.id}')">🚀 XEM BẰNG WEB NHẸ</button>
-                            <div class="note">Server: yewtu.be (Nhanh gấp 5 lần)</div>
+                            <button class="btn-sv sv1" onclick="moLink('${v.id}', 1)">🚀 SERVER 1 (Nhanh)</button>
+                            
+                            <button class="btn-sv sv2" onclick="moLink('${v.id}', 2)">🚀 SERVER 2 (Dự phòng)</button>
 
-                             <button class="btn-backup" onclick="moGoc('${v.id}')">🐢 Web Cũ (Chậm)</button>
+                             <button class="btn-sv sv3" onclick="moLink('${v.id}', 3)">🐢 Web Gốc (Backup)</button>
                         </div>
                     </div>`;
                 });
@@ -78,25 +80,27 @@
             document.getElementById('box-' + id).style.display = 'block';
         }
 
-        function getSeconds(id) {
+        function moLink(id, serverType) {
             var m = document.getElementById('m-' + id).value || 0;
             var s = document.getElementById('s-' + id).value || 0;
-            return (parseInt(m) * 60) + parseInt(s);
-        }
-
-        // CÁCH MỚI: Dùng Invidious (yewtu.be)
-        // Đây là trang xem Youtube "fake" nhưng siêu nhẹ, phù hợp máy cục gạch
-        function moLite(id) {
-            var s = getSeconds(id);
-            // quality=dash: Ép nó dùng giao thức nhẹ nhất
-            // t=...: Tua đến đúng giây
-            window.location.href = "https://yewtu.be/watch?v=" + id + "&t=" + s + "&autoplay=1";
-        }
-
-        // CÁCH CŨ: Giữ lại để dự phòng nếu yewtu.be bảo trì
-        function moGoc(id) {
-            var s = getSeconds(id);
-            window.location.href = "https://www.youtube.com/embed/" + id + "?start=" + s + "&autoplay=1";
+            var total = (parseInt(m) * 60) + parseInt(s);
+            
+            var url = "";
+            
+            if (serverType === 1) {
+                // Server invidious.drg.li (Thường không có captcha)
+                url = "https://invidious.drg.li/watch?v=" + id + "&t=" + total + "&autoplay=1";
+            } 
+            else if (serverType === 2) {
+                // Server inv.tux.pizza (Dự phòng uy tín)
+                url = "https://inv.tux.pizza/watch?v=" + id + "&t=" + total + "&autoplay=1";
+            } 
+            else {
+                // Youtube Embed (No Cookie - Load nhanh hơn bản thường tí xíu)
+                url = "https://www.youtube-nocookie.com/embed/" + id + "?start=" + total + "&autoplay=1";
+            }
+            
+            window.location.href = url;
         }
     </script>
 </body>
