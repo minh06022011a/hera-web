@@ -1,5 +1,5 @@
 {
-  "name": "hera-lite",
+  "name": "hera-direct-fix",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "yt-search": "^2.10.4"
+    "yt-search": "^2.10.4",
+    "@distube/ytdl-core": "^4.13.5"
   }
 }
