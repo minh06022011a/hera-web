@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA MULTI-SERVER</title>
+    <title>HERA MULTI-VIP</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
@@ -22,10 +22,11 @@
         .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
         
         /* CÁC NÚT SERVER */
-        .btn-sv { width: 100%; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; margin-bottom: 3px; font-size: 12px; }
-        .sv1 { background: #0066cc; border: 1px solid #0099ff; } /* Xanh dương */
-        .sv2 { background: #cc6600; border: 1px solid #ff9900; } /* Cam */
-        .sv3 { background: #333333; border: 1px solid #666666; color: #ccc; } /* Xám */
+        .btn-sv { width: 100%; color: white; border: none; padding: 12px; cursor: pointer; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
+        .sv1 { background: #0066cc; border: 1px solid #0099ff; } /* Nadeko - Uy tín */
+        .sv2 { background: #cc00cc; border: 1px solid #ff00ff; } /* ProjectSegfault - Mỹ */
+        .sv3 { background: #cc6600; border: 1px solid #ff9900; } /* Puffyan - Dự phòng */
+        .sv4 { background: #333333; border: 1px solid #666666; color: #ccc; font-size: 11px; } /* Gốc */
     </style>
 </head>
 <body>
@@ -63,11 +64,10 @@
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
                             
-                            <button class="btn-sv sv1" onclick="moLink('${v.id}', 1)">🚀 SERVER 1 (Nhanh)</button>
-                            
-                            <button class="btn-sv sv2" onclick="moLink('${v.id}', 2)">🚀 SERVER 2 (Dự phòng)</button>
-
-                             <button class="btn-sv sv3" onclick="moLink('${v.id}', 3)">🐢 Web Gốc (Backup)</button>
+                            <button class="btn-sv sv1" onclick="moLink('${v.id}', 1)">🚀 SERVER 1 (Nadeko)</button>
+                            <button class="btn-sv sv2" onclick="moLink('${v.id}', 2)">🚀 SERVER 2 (Segfault)</button>
+                            <button class="btn-sv sv3" onclick="moLink('${v.id}', 3)">🚀 SERVER 3 (Puffyan)</button>
+                            <button class="btn-sv sv4" onclick="moLink('${v.id}', 4)">🐢 Youtube Gốc (Chậm)</button>
                         </div>
                     </div>`;
                 });
@@ -84,22 +84,24 @@
             var m = document.getElementById('m-' + id).value || 0;
             var s = document.getElementById('s-' + id).value || 0;
             var total = (parseInt(m) * 60) + parseInt(s);
-            
             var url = "";
             
             if (serverType === 1) {
-                // Server invidious.drg.li (Thường không có captcha)
-                url = "https://invidious.drg.li/watch?v=" + id + "&t=" + total + "&autoplay=1";
+                // inv.nadeko.net (Rất nổi tiếng, thường ổn định)
+                url = "https://inv.nadeko.net/watch?v=" + id + "&t=" + total + "&autoplay=1";
             } 
             else if (serverType === 2) {
-                // Server inv.tux.pizza (Dự phòng uy tín)
-                url = "https://inv.tux.pizza/watch?v=" + id + "&t=" + total + "&autoplay=1";
+                // invidious.projectsegfault.net (Server mạnh)
+                url = "https://invidious.projectsegfault.net/watch?v=" + id + "&t=" + total + "&autoplay=1";
             } 
+            else if (serverType === 3) {
+                // vid.puffyan.us (Lâu đời)
+                url = "https://vid.puffyan.us/watch?v=" + id + "&t=" + total + "&autoplay=1";
+            }
             else {
-                // Youtube Embed (No Cookie - Load nhanh hơn bản thường tí xíu)
+                // Youtube Embed (Backup cuối cùng)
                 url = "https://www.youtube-nocookie.com/embed/" + id + "?start=" + total + "&autoplay=1";
             }
-            
             window.location.href = url;
         }
     </script>
