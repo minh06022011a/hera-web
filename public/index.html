@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA MULTI-VIP</title>
+    <title>HERA FINAL</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
@@ -21,12 +21,10 @@
         .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
         .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
         
-        /* CÁC NÚT SERVER */
-        .btn-sv { width: 100%; color: white; border: none; padding: 12px; cursor: pointer; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
-        .sv1 { background: #0066cc; border: 1px solid #0099ff; } /* Nadeko - Uy tín */
-        .sv2 { background: #cc00cc; border: 1px solid #ff00ff; } /* ProjectSegfault - Mỹ */
-        .sv3 { background: #cc6600; border: 1px solid #ff9900; } /* Puffyan - Dự phòng */
-        .sv4 { background: #333333; border: 1px solid #666666; color: #ccc; font-size: 11px; } /* Gốc */
+        /* 3 NÚT BẤM THẦN THÁNH */
+        .btn-force { width: 100%; background: #b00; color: white; border: 1px solid red; padding: 10px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
+        .btn-intent { width: 100%; background: #a0a; color: white; border: 1px solid #f0f; padding: 8px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
+        .btn-web { width: 100%; background: #333; color: #ccc; border: 1px solid #555; padding: 6px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -37,7 +35,7 @@
     </div>
 
     <div id="ketqua">
-        <p style="color:#666">Nhập từ khóa...</p>
+        <p style="color:#666">Nhập từ khóa để tìm...</p>
     </div>
 
     <script>
@@ -64,10 +62,11 @@
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
                             
-                            <button class="btn-sv sv1" onclick="moLink('${v.id}', 1)">🚀 SERVER 1 (Nadeko)</button>
-                            <button class="btn-sv sv2" onclick="moLink('${v.id}', 2)">🚀 SERVER 2 (Segfault)</button>
-                            <button class="btn-sv sv3" onclick="moLink('${v.id}', 3)">🚀 SERVER 3 (Puffyan)</button>
-                            <button class="btn-sv sv4" onclick="moLink('${v.id}', 4)">🐢 Youtube Gốc (Chậm)</button>
+                            <button class="btn-force" onclick="moVND('${v.id}')">⚡ CÁCH 1: ÉP MỞ APP</button>
+                            
+                            <button class="btn-intent" onclick="moIntent('${v.id}')">🤖 CÁCH 2: LỆNH ANDROID</button>
+                            
+                            <button class="btn-web" onclick="moWeb('${v.id}')">🌐 CÁCH 3: WEB EMBED</button>
                         </div>
                     </div>`;
                 });
@@ -80,29 +79,16 @@
             document.getElementById('box-' + id).style.display = 'block';
         }
 
-        function moLink(id, serverType) {
+        function getSeconds(id) {
             var m = document.getElementById('m-' + id).value || 0;
             var s = document.getElementById('s-' + id).value || 0;
-            var total = (parseInt(m) * 60) + parseInt(s);
-            var url = "";
-            
-            if (serverType === 1) {
-                // inv.nadeko.net (Rất nổi tiếng, thường ổn định)
-                url = "https://inv.nadeko.net/watch?v=" + id + "&t=" + total + "&autoplay=1";
-            } 
-            else if (serverType === 2) {
-                // invidious.projectsegfault.net (Server mạnh)
-                url = "https://invidious.projectsegfault.net/watch?v=" + id + "&t=" + total + "&autoplay=1";
-            } 
-            else if (serverType === 3) {
-                // vid.puffyan.us (Lâu đời)
-                url = "https://vid.puffyan.us/watch?v=" + id + "&t=" + total + "&autoplay=1";
-            }
-            else {
-                // Youtube Embed (Backup cuối cùng)
-                url = "https://www.youtube-nocookie.com/embed/" + id + "?start=" + total + "&autoplay=1";
-            }
-            window.location.href = url;
+            return (parseInt(m) * 60) + parseInt(s);
+        }
+
+        // --- CÁCH 1: Link Embed (Như cũ) ---
+        function moWeb(id) {
+            var s = getSeconds(id);
+            window.location.href = "https://www.youtube.com/embed/" + id + "?start=" + s + "&autoplay=1";
         }
     </script>
 </body>
