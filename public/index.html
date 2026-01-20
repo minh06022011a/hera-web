@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA DIRECT</title>
+    <title>HERA DIRECT VIP</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
@@ -17,12 +17,13 @@
         .item .time { font-size: 11px; color: #888; }
         .clear { clear: both; }
 
-        /* NÚT BẤM QUYẾT ĐỊNH */
         .btn-direct { width: 100%; background: #b00; color: white; border: 1px solid red; padding: 12px; cursor: pointer; font-weight: bold; margin-top: 5px; font-size: 14px; }
-        .note { font-size: 11px; color: #666; margin-top: 2px; font-style: italic; }
         
         .time-box { display:none; margin-top: 5px; border-top: 1px dashed #333; padding-top:5px; }
-        .time-display { color: yellow; font-weight: bold; margin-bottom: 5px; }
+        .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+        .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
+        
+        .note { font-size: 11px; color: #666; margin-top: 2px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -37,12 +38,18 @@
     </div>
 
     <script>
+        // Hàm tạo số ngẫu nhiên để chống Cache trình duyệt
+        function noCache() {
+            return '&r=' + Math.random();
+        }
+
         async function timKiem() {
             var k = document.getElementById('keyword').value;
             if(!k) return;
-            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang bóc tách dữ liệu...</p>';
+            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang tìm...</p>';
             try {
-                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
+                // Thêm noCache() vào đây để mỗi lần tìm là 1 lần mới
+                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k) + noCache());
                 var data = await res.json();
                 var html = '';
                 data.forEach(v => {
@@ -56,9 +63,12 @@
                         <button onclick="hienNut('${v.id}')" style="width:100%; margin-top:5px; background:#222; color:white; border:1px solid #444;">🔽 CHỌN</button>
                         
                         <div id="box-${v.id}" class="time-box">
-                            <div class="time-display">⚠️ Sếp tự tua tay nhé</div>
+                            <div class="time-inputs">
+                                <input type="number" id="m-${v.id}" placeholder="Phút" value="0">
+                                <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
+                            </div>
                             <button class="btn-direct" onclick="xemNgay('${v.id}')">▶ XEM NGAY (MP4)</button>
-                            <div class="note">Server sẽ bóc link gốc & mở video</div>
+                            <div class="note">Đã kích hoạt chế độ tua & chống cache</div>
                         </div>
                     </div>`;
                 });
@@ -72,8 +82,12 @@
         }
 
         function xemNgay(id) {
-            // Gọi vào Server của chính mình
-            window.location.href = "/xem-ngay?id=" + id;
+            var m = document.getElementById('m-' + id).value || 0;
+            var s = document.getElementById('s-' + id).value || 0;
+            var total = (parseInt(m) * 60) + parseInt(s);
+            
+            // Gọi server kèm thời gian (t) và mã ngẫu nhiên (r) để chống cache
+            window.location.href = "/xem-ngay?id=" + id + "&t=" + total + "&r=" + Math.random();
         }
     </script>
 </body>

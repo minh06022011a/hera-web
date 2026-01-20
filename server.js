@@ -2,11 +2,11 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const yts = require('yt-search');
-const ytdl = require('@distube/ytdl-core'); // Thư viện xịn
+const ytdl = require('@distube/ytdl-core');
 
 app.use(express.static('public'));
 
-// 1. API TÌM KIẾM (Như cũ)
+// 1. API TÌM KIẾM
 app.get('/tim-kiem', async (req, res) => {
     try {
         const tukhoa = req.query.q;
@@ -22,29 +22,36 @@ app.get('/tim-kiem', async (req, res) => {
     } catch (e) { res.json([]); }
 });
 
-// 2. API LẤY LINK TRỰC TIẾP (Cái này mới quan trọng)
+// 2. API LẤY LINK (BẢN NÂNG CẤP)
 app.get('/xem-ngay', async (req, res) => {
+    // A. LỆNH CẤM CACHE (Bắt buộc máy Hera phải tải mới mỗi lần)
+    res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.header('Expires', '-1');
+    res.header('Pragma', 'no-cache');
+
     try {
         const id = req.query.id;
+        const time = req.query.t || 0; // Lấy thời gian sếp nhập
         const url = `https://www.youtube.com/watch?v=${id}`;
 
-        // Lấy thông tin video
         const info = await ytdl.getInfo(url);
         
-        // Chọn định dạng MP4 có cả hình và tiếng (itag 18 là 360p - nhẹ nhất cho Hera)
+        // Chọn định dạng 360p (itag 18) có cả tiếng và hình
         const format = ytdl.chooseFormat(info.formats, { quality: '18' });
 
         if (format && format.url) {
-            // Chuyển hướng trình duyệt Hera thẳng đến file Video
-            // Máy sẽ tự bật trình phát video lên
-            res.redirect(format.url);
+            // B. MẸO TUA GIỜ: Thêm #t=xx vào đuôi link
+            // Một số trình phát video sẽ hiểu cái này và tự nhảy
+            const finalLink = format.url + '#t=' + time;
+            
+            res.redirect(finalLink);
         } else {
-            res.send("<h1>Lỗi: Không lấy được link video này (Có thể do bản quyền).</h1>");
+            res.send("<h1>Lỗi: Video này không có bản 360p (Có thể là 1080p Only).</h1>");
         }
 
     } catch (e) {
         console.error(e);
-        res.send(`<h1>Lỗi Server: ${e.message}</h1><p>Hãy thử video khác.</p>`);
+        res.send(`<h1>Lỗi: ${e.message}</h1>`);
     }
 });
 
@@ -53,4 +60,4 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server chạy!"));
+app.listen(PORT, () => console.log("Server Anti-Cache Running!"));
