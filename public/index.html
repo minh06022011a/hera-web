@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA FINAL</title>
+    <title>HERA LITE</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
@@ -21,10 +21,10 @@
         .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
         .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
         
-        /* 3 NÚT BẤM THẦN THÁNH */
-        .btn-force { width: 100%; background: #b00; color: white; border: 1px solid red; padding: 10px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
-        .btn-intent { width: 100%; background: #a0a; color: white; border: 1px solid #f0f; padding: 8px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
-        .btn-web { width: 100%; background: #333; color: #ccc; border: 1px solid #555; padding: 6px; cursor: pointer; font-size: 12px; }
+        /* NÚT BẤM MỚI */
+        .btn-lite { width: 100%; background: #0066cc; color: white; border: 1px solid #0099ff; padding: 12px; cursor: pointer; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .btn-backup { width: 100%; background: #333; color: #888; border: 1px solid #555; padding: 5px; cursor: pointer; font-size: 11px; }
+        .note { font-size: 10px; color: #666; font-style: italic; }
     </style>
 </head>
 <body>
@@ -62,11 +62,10 @@
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
                             
-                            <button class="btn-force" onclick="moVND('${v.id}')">⚡ CÁCH 1: ÉP MỞ APP</button>
-                            
-                            <button class="btn-intent" onclick="moIntent('${v.id}')">🤖 CÁCH 2: LỆNH ANDROID</button>
-                            
-                            <button class="btn-web" onclick="moWeb('${v.id}')">🌐 CÁCH 3: WEB EMBED</button>
+                            <button class="btn-lite" onclick="moLite('${v.id}')">🚀 XEM BẰNG WEB NHẸ</button>
+                            <div class="note">Server: yewtu.be (Nhanh gấp 5 lần)</div>
+
+                             <button class="btn-backup" onclick="moGoc('${v.id}')">🐢 Web Cũ (Chậm)</button>
                         </div>
                     </div>`;
                 });
@@ -85,23 +84,17 @@
             return (parseInt(m) * 60) + parseInt(s);
         }
 
-        // --- CÁCH 1: Dùng giao thức riêng của Youtube (Bỏ qua trình duyệt) ---
-        function moVND(id) {
-            // Lệnh này bắt buộc hệ thống phải tìm App Youtube để mở
-            // Lưu ý: Cách này có thể không tua đúng giờ trên một số máy cũ, nhưng chắc chắn mở được App.
-            window.location.href = "vnd.youtube:" + id;
-        }
-
-        // --- CÁCH 2: Dùng Intent của Android (Chuẩn chỉ nhất) ---
-        function moIntent(id) {
+        // CÁCH MỚI: Dùng Invidious (yewtu.be)
+        // Đây là trang xem Youtube "fake" nhưng siêu nhẹ, phù hợp máy cục gạch
+        function moLite(id) {
             var s = getSeconds(id);
-            // Đây là câu lệnh "thần chú" gọi đích danh gói com.google.android.youtube
-            var url = "intent://www.youtube.com/watch?v=" + id + "&t=" + s + "s#Intent;package=com.google.android.youtube;scheme=https;end;";
-            window.location.href = url;
+            // quality=dash: Ép nó dùng giao thức nhẹ nhất
+            // t=...: Tua đến đúng giây
+            window.location.href = "https://yewtu.be/watch?v=" + id + "&t=" + s + "&autoplay=1";
         }
 
-        // --- CÁCH 3: Link Embed (Như cũ) ---
-        function moWeb(id) {
+        // CÁCH CŨ: Giữ lại để dự phòng nếu yewtu.be bảo trì
+        function moGoc(id) {
             var s = getSeconds(id);
             window.location.href = "https://www.youtube.com/embed/" + id + "?start=" + s + "&autoplay=1";
         }
