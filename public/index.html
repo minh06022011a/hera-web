@@ -3,75 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hera S9 - Link Converter</title>
+    <title>Hera S9 - Search & Play</title>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: monospace; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .control-panel { width: 100%; max-width: 600px; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #333; }
+        /* Giao diện Dark Mode, tối giản cho Hera S9 */
+        body { background-color: #121212; color: #e0e0e0; font-family: monospace; padding: 10px; margin: 0; }
         
-        label { font-weight: bold; color: #ff5252; display: block; margin-top: 10px; }
-        input { background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 12px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 4px; font-size: 16px; }
+        /* 1. Thanh tìm kiếm */
+        .search-box { position: sticky; top: 0; background: #121212; padding: 10px 0; z-index: 100; border-bottom: 1px solid #333; display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 4px; font-size: 16px; }
+        .btn-search { background: #b71c1c; color: #fff; border: none; padding: 0 20px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         
-        .time-group { display: flex; gap: 10px; }
-        .time-group input { text-align: center; }
-        
-        button { width: 100%; padding: 15px; background: #b71c1c; color: #fff; border: none; font-weight: bold; margin-top: 20px; cursor: pointer; border-radius: 4px; font-size: 16px; text-transform: uppercase; }
-        button:hover { background: #d32f2f; }
+        /* 2. List kết quả */
+        .results-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; padding-bottom: 50px; }
+        .video-card { display: flex; gap: 10px; background: #1e1e1e; padding: 10px; border-radius: 8px; cursor: pointer; border: 1px solid #333; transition: 0.2s; }
+        .video-card:hover { border-color: #ff0000; background: #252525; }
+        .thumb { width: 120px; height: 68px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+        .info { overflow: hidden; }
+        .title { font-weight: bold; font-size: 14px; margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .meta { font-size: 12px; color: #aaa; }
 
-        /* Phần hiện kết quả Link */
-        .result-area { margin-top: 20px; display: none; /* Ẩn đi khi chưa bấm nút */ }
-        .result-box { background: #000; border: 1px solid #00ff00; color: #00ff00; font-weight: bold; }
+        /* 3. Popup nhập giờ (Ẩn mặc định) */
+        .time-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; flex-direction: column; }
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #ff0000; width: 90%; max-width: 400px; text-align: center; }
+        .time-inputs { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+        .time-inputs input { width: 60px; text-align: center; background: #333; color: #fff; border: 1px solid #555; padding: 10px; border-radius: 4px; }
+        .btn-play { width: 100%; padding: 15px; background: #00c853; color: #fff; border: none; font-weight: bold; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        .btn-close { background: transparent; border: none; color: #888; margin-top: 10px; cursor: pointer; text-decoration: underline; }
+
+        /* 4. Màn hình Player (Ẩn mặc định) */
+        .player-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 300; }
+        .player-frame { width: 100%; height: 100%; }
+        .btn-back { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 5px 15px; border: 1px solid #fff; z-index: 301; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="control-panel">
-        <label>DÁN LINK YOUTUBE GỐC:</label>
-        <input type="text" id="ytLink" placeholder="Ví dụ: https://youtu.be/..." >
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Nhập tên video..." onkeypress="if(event.key==='Enter') doSearch()">
+        <button class="btn-search" onclick="doSearch()">TÌM</button>
+    </div>
 
-        <label>CHỌN THỜI GIAN MUỐN SKIP ĐẾN:</label>
-        <div class="time-group">
-            <input type="number" id="h" placeholder="Giờ" min="0">
-            <input type="number" id="m" placeholder="Phút" min="0">
-            <input type="number" id="s" placeholder="Giây" min="0">
+    <div id="status" style="text-align:center; margin-top:20px; color:#888;">Nhập từ khóa để tìm...</div>
+    <div class="results-grid" id="resultsArea">
         </div>
 
-        <button onclick="convertLink()">TẠO LINK HERA</button>
+    <div id="timeModal" class="time-modal">
+        <div class="modal-content">
+            <h3 id="selectedTitle" style="color: #ff5252; margin:0 0 10px 0;"></h3>
+            <div style="font-size: 13px; color: #aaa;">Muốn xem từ phút bao nhiêu?</div>
+            
+            <div class="time-inputs">
+                <input type="number" id="h" placeholder="Giờ" value="0" min="0">
+                <input type="number" id="m" placeholder="Phút" value="0" min="0">
+                <input type="number" id="s" placeholder="Giây" value="0" min="0">
+            </div>
 
-        <div id="resultDiv" class="result-area">
-            <label style="color: #00ff00;">LINK ĐÃ XỬ LÝ (Copy cái này):</label>
-            <input type="text" id="finalLink" class="result-box" readonly onclick="this.select()">
+            <button class="btn-play" onclick="playCurrentVideo()">XEM NGAY</button>
+            <button class="btn-close" onclick="closeModal()">Hủy bỏ</button>
         </div>
     </div>
 
+    <div id="playerOverlay" class="player-overlay">
+        <button class="btn-back" onclick="closePlayer()">QUAY LẠI TÌM KIẾM</button>
+        <div id="playerContainer" style="width:100%; height:100%"></div>
+    </div>
+
     <script>
-        function convertLink() {
-            const rawLink = document.getElementById('ytLink').value.trim();
+        // --- CẤU HÌNH ---
+        // Dùng API Invidious public để tìm kiếm (Không cần API Key Google)
+        // Nếu link này chết, đổi sang: https://inv.tux.pizza hoặc https://vid.puffyan.us
+        const API_URL = "https://invidious.jing.rocks/api/v1/search"; 
+
+        let currentVideoId = "";
+
+        // 1. HÀM TÌM KIẾM
+        async function doSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if(!query) return;
+
+            document.getElementById('status').innerText = "Đang quét dữ liệu...";
+            document.getElementById('resultsArea').innerHTML = "";
+
+            try {
+                // Gọi API lấy danh sách
+                const res = await fetch(`${API_URL}?q=${encodeURIComponent(query)}&type=video`);
+                const data = await res.json();
+
+                if(!data || data.length === 0) {
+                    document.getElementById('status').innerText = "Không tìm thấy gì cả.";
+                    return;
+                }
+
+                document.getElementById('status').style.display = 'none';
+                
+                // Render từng video ra màn hình
+                data.forEach(vid => {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+                    // Khi bấm vào video -> Mở bảng nhập giờ
+                    card.onclick = () => openTimeSelector(vid.videoId, vid.title);
+
+                    // Xử lý ảnh thumbnail
+                    let thumbUrl = vid.videoThumbnails && vid.videoThumbnails.length > 0 
+                                   ? vid.videoThumbnails[1].url // Lấy ảnh size vừa
+                                   : `https://i.ytimg.com/vi/${vid.videoId}/mqdefault.jpg`;
+
+                    // Đổi giây sang format mm:ss (để hiển thị chơi thôi)
+                    const durationText = formatDuration(vid.lengthSeconds);
+
+                    card.innerHTML = `
+                        <img src="${thumbUrl}" class="thumb" onerror="this.src='https://i.ytimg.com/vi/${vid.videoId}/mqdefault.jpg'">
+                        <div class="info">
+                            <div class="title">${vid.title}</div>
+                            <div class="meta">
+                                Kênh: ${vid.author} <br>
+                                Thời lượng: ${durationText}
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('resultsArea').appendChild(card);
+                });
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Lỗi kết nối API (Thử reload hoặc đổi mạng).";
+                document.getElementById('status').style.display = 'block';
+            }
+        }
+
+        // 2. HÀM MỞ POPUP NHẬP GIỜ
+        function openTimeSelector(vidId, title) {
+            currentVideoId = vidId;
+            document.getElementById('selectedTitle').innerText = title;
+            // Reset giờ về 0
+            document.getElementById('h').value = 0;
+            document.getElementById('m').value = 0;
+            document.getElementById('s').value = 0;
+            
+            document.getElementById('timeModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('timeModal').style.display = 'none';
+        }
+
+        // 3. HÀM TÍNH TOÁN VÀ PHÁT (Core Logic)
+        function playCurrentVideo() {
             const h = parseInt(document.getElementById('h').value) || 0;
             const m = parseInt(document.getElementById('m').value) || 0;
             const s = parseInt(document.getElementById('s').value) || 0;
 
-            // Lọc ID Video
-            let videoId = "";
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = rawLink.match(regExp);
-
-            if (match && match[2].length === 11) {
-                videoId = match[2];
-            } else {
-                alert("Link Youtube lỗi rồi!");
-                return;
-            }
-
-            // Đổi ra tổng số giây (Fix lỗi reload)
+            // Đổi ra GIÂY (Fix lỗi reload mất thời gian)
             const totalSeconds = (h * 3600) + (m * 60) + s;
 
-            // Tạo link Embed có tham số start (tính bằng giây)
-            // Đây là cái link ông cần để ném vào web khác hoặc tool khác
-            const finalUrl = `https://www.youtube.com/embed/${videoId}?start=${totalSeconds}`;
+            // Tạo iframe link chuẩn Embed
+            const embedUrl = `https://www.youtube.com/embed/${currentVideoId}?start=${totalSeconds}&autoplay=1&rel=0`;
 
-            // Hiện kết quả ra ô input
-            document.getElementById('resultDiv').style.display = 'block';
-            document.getElementById('finalLink').value = finalUrl;
+            // Hiển thị Player
+            const iframeHTML = `<iframe src="${embedUrl}" class="player-frame" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            
+            document.getElementById('playerContainer').innerHTML = iframeHTML;
+            document.getElementById('timeModal').style.display = 'none';
+            document.getElementById('playerOverlay').style.display = 'block';
+        }
+
+        function closePlayer() {
+            // Tắt video khi back
+            document.getElementById('playerContainer').innerHTML = ""; 
+            document.getElementById('playerOverlay').style.display = 'none';
+        }
+
+        // Tiện ích: Đổi giây ra phút:giây
+        function formatDuration(seconds) {
+            if(!seconds) return "??:??";
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s < 10 ? '0'+s : s}`;
         }
     </script>
 </body>
