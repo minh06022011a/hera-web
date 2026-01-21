@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA API</title>
+    <title>HERA FINAL</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         .search-box { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
@@ -29,10 +29,9 @@
         <input type="text" id="keyword" placeholder="Nhập tên video..." onkeypress="if(event.key=='Enter') timKiem()">
         <button class="btn-search" onclick="timKiem()">🔍 TÌM KIẾM</button>
     </div>
-    <div id="ketqua"><p style="color:#666">Server Invidious API Ready...</p></div>
+    <div id="ketqua"><p style="color:#666">Sẵn sàng.</p></div>
 
     <script>
-        // Hàm đổi giây sang phút:giây cho đẹp
         function formatTime(seconds) {
             var m = Math.floor(seconds / 60);
             var s = seconds % 60;
@@ -42,10 +41,16 @@
         async function timKiem() {
             var k = document.getElementById('keyword').value;
             if(!k) return;
-            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang gọi Invidious...</p>';
+            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang quét 5 Server...</p>';
             try {
                 var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
                 var data = await res.json();
+                
+                if (data.length === 0) {
+                    document.getElementById('ketqua').innerHTML = '<p style="color:red">Server quá tải. Thử lại sau 10s!</p>';
+                    return;
+                }
+
                 var html = '';
                 data.forEach(v => {
                     html += `
@@ -61,7 +66,7 @@
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
                             <button class="btn-direct" onclick="xemNgay('${v.id}')">▶ XEM NGAY</button>
-                            <div class="note">Lấy link trực tiếp từ Invidious</div>
+                            <div class="note">Tự chuyển Embed nếu lỗi</div>
                         </div>
                     </div>`;
                 });

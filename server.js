@@ -4,51 +4,57 @@ const path = require('path');
 
 app.use(express.static('public'));
 
-// DANH SÁCH 5 SERVER INVIDIOUS (Chết cái này tự nhảy cái kia)
+// DANH SÁCH SERVER MẠNH NHẤT HIỆN TẠI (Đã lọc)
 const SERVERS = [
-    "https://inv.tux.pizza",        // Server Châu Âu (Ngon)
-    "https://vid.puffyan.us",       // Server Mỹ (Trâu bò)
-    "https://invidious.drg.li",     // Server dự phòng 1
-    "https://inv.nadeko.net",       // Server cũ (Để cuối cùng)
-    "https://invidious.projectsegfault.net" // Server dự phòng 2
+    "https://inv.tux.pizza",
+    "https://vid.puffyan.us",
+    "https://invidious.drg.li",
+    "https://yt.artemislena.eu",
+    "https://invidious.protokolla.fi"
 ];
 
-// Hàm đi săn: Thử từng server một, cái nào sống thì lấy
-async function fetchWithFailover(endpoint) {
-    for (const domain of SERVERS) {
-        try {
-            console.log(`Dang thu server: ${domain}...`);
-            // Đặt timeout 3 giây để không đợi lâu
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
-            
-            const response = await fetch(`${domain}${endpoint}`, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-                return await response.json();
-            }
-        } catch (e) {
-            console.log(`Server ${domain} loi, bo qua.`);
-            // Lỗi thì vòng lặp tự chạy tiếp sang server sau
-        }
+// Hàm đi săn có Timeout (3 giây quá lâu thì bỏ qua ngay)
+async function fetchWithTimeout(url, timeout = 3000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (e) {
+        clearTimeout(id);
+        throw e;
     }
-    throw new Error("Toàn bộ Server đều bận, sếp thử lại sau!");
 }
 
-// 1. API TÌM KIẾM (Đa luồng)
+// 1. API TÌM KIẾM (Thử lần lượt các server)
 app.get('/tim-kiem', async (req, res) => {
     try {
         const query = req.query.q;
-        // Gọi hàm đi săn
-        const data = await fetchWithFailover(`/api/v1/search?q=${encodeURIComponent(query)}`);
-        
+        let data = null;
+
+        // Vòng lặp thử từng server
+        for (const domain of SERVERS) {
+            try {
+                console.log(`Dang tim tai: ${domain}`);
+                const resApi = await fetchWithTimeout(`${domain}/api/v1/search?q=${encodeURIComponent(query)}`);
+                if (resApi.ok) {
+                    data = await resApi.json();
+                    break; // Tìm được rồi thì thoát vòng lặp
+                }
+            } catch (e) { continue; }
+        }
+
+        if (!data) return res.json([]); // Hết cách thì trả về rỗng
+
+        // Lọc lấy video
         const videos = data.filter(i => i.type === 'video').slice(0, 15).map(v => ({
             title: v.title,
             id: v.videoId,
             time: v.lengthSeconds,
             img: v.videoThumbnails?.[1]?.url || v.videoThumbnails?.[0]?.url
         }));
+        
         res.json(videos);
     } catch (e) {
         console.log(e);
@@ -56,29 +62,49 @@ app.get('/tim-kiem', async (req, res) => {
     }
 });
 
-// 2. API LẤY LINK (Đa luồng)
+// 2. API LẤY LINK (CÓ DỰ PHÒNG EMBED)
 app.get('/xem-ngay', async (req, res) => {
+    // Chống cache tuyệt đối
     res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     
-    try {
-        const id = req.query.id;
-        const time = req.query.t || 0;
-        
-        // Gọi hàm đi săn lấy thông tin video
-        const data = await fetchWithFailover(`/api/v1/videos/${id}`);
-        
-        // Tìm 360p (nhẹ nhất) hoặc MP4 bất kỳ
-        let format = data.formatStreams.find(f => f.resolution === '360p' && f.container === 'mp4');
-        if (!format) format = data.formatStreams.find(f => f.container === 'mp4');
+    const id = req.query.id;
+    const time = req.query.t || 0;
 
-        if (format && format.url) {
-            res.redirect(format.url + '#t=' + time);
+    try {
+        let videoUrl = null;
+
+        // A. CHIẾN THUẬT SĂN LINK MP4 (Nhanh)
+        for (const domain of SERVERS) {
+            try {
+                const resApi = await fetchWithTimeout(`${domain}/api/v1/videos/${id}`);
+                if (resApi.ok) {
+                    const data = await resApi.json();
+                    // Tìm file MP4 360p hoặc bất kỳ
+                    let format = data.formatStreams.find(f => f.resolution === '360p' && f.container === 'mp4');
+                    if (!format) format = data.formatStreams.find(f => f.container === 'mp4');
+                    
+                    if (format && format.url) {
+                        videoUrl = format.url;
+                        break; // Có link ngon thì dừng
+                    }
+                }
+            } catch (e) { continue; }
+        }
+
+        // B. QUYẾT ĐỊNH CUỐI CÙNG
+        if (videoUrl) {
+            // Trường hợp 1: Có link MP4 xịn -> Redirect sang MP4 (Tua được)
+            res.redirect(videoUrl + '#t=' + time);
         } else {
-            res.send("<h1>Lỗi: Không tìm thấy link tải video này.</h1>");
+            // Trường hợp 2: Thất bại toàn tập -> Redirect sang Youtube Embed (Chậm nhưng chắc chắn chạy)
+            // Dùng youtube-nocookie để nhẹ hơn bản gốc
+            console.log("Fallback sang Embed");
+            res.redirect(`https://www.youtube-nocookie.com/embed/${id}?start=${time}&autoplay=1`);
         }
 
     } catch (e) {
-        res.send(`<h1>Lỗi: ${e.message}</h1>`);
+        // Trường hợp 3: Lỗi hệ thống -> Vẫn ném sang Embed cho chắc
+        res.redirect(`https://www.youtube-nocookie.com/embed/${id}?start=${time}&autoplay=1`);
     }
 });
 
@@ -86,10 +112,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// CẤU HÌNH CHO VERCEL (BẮT BUỘC GIỮ NGUYÊN)
+// CẤU HÌNH VERCEL
 module.exports = app;
-
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => console.log("Server Multi-Invidious Running!"));
+    app.listen(PORT, () => console.log("Server Fail-Safe Running!"));
 }
