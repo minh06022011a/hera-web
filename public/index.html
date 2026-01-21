@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA DIRECT VIP</title>
+    <title>HERA API</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
-        
         .search-box { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         input[type="text"] { width: 90%; padding: 8px; background: #222; color: #fff; border: 1px solid #0f0; text-align: center; }
         button.btn-search { width: 95%; padding: 8px; margin-top: 5px; background: #004400; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
-
+        
         .item { border: 1px solid #333; margin-bottom: 5px; padding: 5px; text-align: left; background: #111; }
         .item img { width: 60px; height: 45px; object-fit: cover; float: left; margin-right: 5px; border: 1px solid #555; }
         .item .title { font-size: 13px; color: white; display: block; overflow: hidden; height: 32px; }
@@ -22,34 +21,30 @@
         .time-box { display:none; margin-top: 5px; border-top: 1px dashed #333; padding-top:5px; }
         .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
         .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
-        
         .note { font-size: 11px; color: #666; margin-top: 2px; font-style: italic; }
     </style>
 </head>
 <body>
-
     <div class="search-box">
         <input type="text" id="keyword" placeholder="Nhập tên video..." onkeypress="if(event.key=='Enter') timKiem()">
         <button class="btn-search" onclick="timKiem()">🔍 TÌM KIẾM</button>
     </div>
-
-    <div id="ketqua">
-        <p style="color:#666">Nhập từ khóa...</p>
-    </div>
+    <div id="ketqua"><p style="color:#666">Server Invidious API Ready...</p></div>
 
     <script>
-        // Hàm tạo số ngẫu nhiên để chống Cache trình duyệt
-        function noCache() {
-            return '&r=' + Math.random();
+        // Hàm đổi giây sang phút:giây cho đẹp
+        function formatTime(seconds) {
+            var m = Math.floor(seconds / 60);
+            var s = seconds % 60;
+            return m + ":" + (s < 10 ? "0" : "") + s;
         }
 
         async function timKiem() {
             var k = document.getElementById('keyword').value;
             if(!k) return;
-            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang tìm...</p>';
+            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang gọi Invidious...</p>';
             try {
-                // Thêm noCache() vào đây để mỗi lần tìm là 1 lần mới
-                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k) + noCache());
+                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
                 var data = await res.json();
                 var html = '';
                 data.forEach(v => {
@@ -57,36 +52,30 @@
                     <div class="item">
                         <img src="${v.img}">
                         <span class="title">${v.title}</span>
-                        <span class="time">⏱ ${v.time}</span>
+                        <span class="time">⏱ ${formatTime(v.time)}</span>
                         <div class="clear"></div>
-                        
                         <button onclick="hienNut('${v.id}')" style="width:100%; margin-top:5px; background:#222; color:white; border:1px solid #444;">🔽 CHỌN</button>
-                        
                         <div id="box-${v.id}" class="time-box">
                             <div class="time-inputs">
                                 <input type="number" id="m-${v.id}" placeholder="Phút" value="0">
                                 <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
-                            <button class="btn-direct" onclick="xemNgay('${v.id}')">▶ XEM NGAY (MP4)</button>
-                            <div class="note">Đã kích hoạt chế độ tua & chống cache</div>
+                            <button class="btn-direct" onclick="xemNgay('${v.id}')">▶ XEM NGAY</button>
+                            <div class="note">Lấy link trực tiếp từ Invidious</div>
                         </div>
                     </div>`;
                 });
                 document.getElementById('ketqua').innerHTML = html;
             } catch (e) { document.getElementById('ketqua').innerHTML = '<p style="color:red">Lỗi mạng!</p>'; }
         }
-
         function hienNut(id) {
             document.querySelectorAll('.time-box').forEach(d => d.style.display = 'none');
             document.getElementById('box-' + id).style.display = 'block';
         }
-
         function xemNgay(id) {
             var m = document.getElementById('m-' + id).value || 0;
             var s = document.getElementById('s-' + id).value || 0;
             var total = (parseInt(m) * 60) + parseInt(s);
-            
-            // Gọi server kèm thời gian (t) và mã ngẫu nhiên (r) để chống cache
             window.location.href = "/xem-ngay?id=" + id + "&t=" + total + "&r=" + Math.random();
         }
     </script>
