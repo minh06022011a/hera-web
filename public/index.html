@@ -3,182 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hera S9 - Search & Play</title>
+    <title>HERA FINAL</title>
     <style>
-        /* Giao diện Dark Mode, tối giản cho Hera S9 */
-        body { background-color: #121212; color: #e0e0e0; font-family: monospace; padding: 10px; margin: 0; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
         
-        /* 1. Thanh tìm kiếm */
-        .search-box { position: sticky; top: 0; background: #121212; padding: 10px 0; z-index: 100; border-bottom: 1px solid #333; display: flex; gap: 10px; }
-        input[type="text"] { flex: 1; background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 4px; font-size: 16px; }
-        .btn-search { background: #b71c1c; color: #fff; border: none; padding: 0 20px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .search-box { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        input[type="text"] { width: 90%; padding: 8px; background: #222; color: #fff; border: 1px solid #0f0; text-align: center; }
+        button.btn-search { width: 95%; padding: 8px; margin-top: 5px; background: #004400; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
+
+        .item { border: 1px solid #333; margin-bottom: 5px; padding: 5px; text-align: left; background: #111; }
+        .item img { width: 60px; height: 45px; object-fit: cover; float: left; margin-right: 5px; border: 1px solid #555; }
+        .item .title { font-size: 13px; color: white; display: block; overflow: hidden; height: 32px; }
+        .item .time { font-size: 11px; color: #888; }
+        .clear { clear: both; }
+
+        .time-box { display: none; margin-top: 5px; border-top: 1px dashed #555; padding-top: 5px; }
+        .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+        .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
         
-        /* 2. List kết quả */
-        .results-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; padding-bottom: 50px; }
-        .video-card { display: flex; gap: 10px; background: #1e1e1e; padding: 10px; border-radius: 8px; cursor: pointer; border: 1px solid #333; transition: 0.2s; }
-        .video-card:hover { border-color: #ff0000; background: #252525; }
-        .thumb { width: 120px; height: 68px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
-        .info { overflow: hidden; }
-        .title { font-weight: bold; font-size: 14px; margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .meta { font-size: 12px; color: #aaa; }
-
-        /* 3. Popup nhập giờ (Ẩn mặc định) */
-        .time-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; flex-direction: column; }
-        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #ff0000; width: 90%; max-width: 400px; text-align: center; }
-        .time-inputs { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
-        .time-inputs input { width: 60px; text-align: center; background: #333; color: #fff; border: 1px solid #555; padding: 10px; border-radius: 4px; }
-        .btn-play { width: 100%; padding: 15px; background: #00c853; color: #fff; border: none; font-weight: bold; border-radius: 4px; font-size: 16px; cursor: pointer; }
-        .btn-close { background: transparent; border: none; color: #888; margin-top: 10px; cursor: pointer; text-decoration: underline; }
-
-        /* 4. Màn hình Player (Ẩn mặc định) */
-        .player-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 300; }
-        .player-frame { width: 100%; height: 100%; }
-        .btn-back { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 5px 15px; border: 1px solid #fff; z-index: 301; cursor: pointer; }
+        /* 3 NÚT BẤM THẦN THÁNH */
+        .btn-force { width: 100%; background: #b00; color: white; border: 1px solid red; padding: 10px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
+        .btn-intent { width: 100%; background: #a0a; color: white; border: 1px solid #f0f; padding: 8px; cursor: pointer; font-weight: bold; margin-bottom: 3px; }
+        .btn-web { width: 100%; background: #333; color: #ccc; border: 1px solid #555; padding: 6px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Nhập tên video..." onkeypress="if(event.key==='Enter') doSearch()">
-        <button class="btn-search" onclick="doSearch()">TÌM</button>
+        <input type="text" id="keyword" placeholder="Nhập tên video..." onkeypress="if(event.key=='Enter') timKiem()">
+        <button class="btn-search" onclick="timKiem()">🔍 TÌM KIẾM</button>
     </div>
 
-    <div id="status" style="text-align:center; margin-top:20px; color:#888;">Nhập từ khóa để tìm...</div>
-    <div class="results-grid" id="resultsArea">
-        </div>
-
-    <div id="timeModal" class="time-modal">
-        <div class="modal-content">
-            <h3 id="selectedTitle" style="color: #ff5252; margin:0 0 10px 0;"></h3>
-            <div style="font-size: 13px; color: #aaa;">Muốn xem từ phút bao nhiêu?</div>
-            
-            <div class="time-inputs">
-                <input type="number" id="h" placeholder="Giờ" value="0" min="0">
-                <input type="number" id="m" placeholder="Phút" value="0" min="0">
-                <input type="number" id="s" placeholder="Giây" value="0" min="0">
-            </div>
-
-            <button class="btn-play" onclick="playCurrentVideo()">XEM NGAY</button>
-            <button class="btn-close" onclick="closeModal()">Hủy bỏ</button>
-        </div>
-    </div>
-
-    <div id="playerOverlay" class="player-overlay">
-        <button class="btn-back" onclick="closePlayer()">QUAY LẠI TÌM KIẾM</button>
-        <div id="playerContainer" style="width:100%; height:100%"></div>
+    <div id="ketqua">
+        <p style="color:#666">Nhập từ khóa để tìm...</p>
     </div>
 
     <script>
-        // --- CẤU HÌNH ---
-        // Dùng API Invidious public để tìm kiếm (Không cần API Key Google)
-        // Nếu link này chết, đổi sang: https://inv.tux.pizza hoặc https://vid.puffyan.us
-        const API_URL = "https://invidious.jing.rocks/api/v1/search"; 
-
-        let currentVideoId = "";
-
-        // 1. HÀM TÌM KIẾM
-        async function doSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if(!query) return;
-
-            document.getElementById('status').innerText = "Đang quét dữ liệu...";
-            document.getElementById('resultsArea').innerHTML = "";
-
+        async function timKiem() {
+            var k = document.getElementById('keyword').value;
+            if(!k) return;
+            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang tìm...</p>';
             try {
-                // Gọi API lấy danh sách
-                const res = await fetch(`${API_URL}?q=${encodeURIComponent(query)}&type=video`);
-                const data = await res.json();
-
-                if(!data || data.length === 0) {
-                    document.getElementById('status').innerText = "Không tìm thấy gì cả.";
-                    return;
-                }
-
-                document.getElementById('status').style.display = 'none';
-                
-                // Render từng video ra màn hình
-                data.forEach(vid => {
-                    const card = document.createElement('div');
-                    card.className = 'video-card';
-                    // Khi bấm vào video -> Mở bảng nhập giờ
-                    card.onclick = () => openTimeSelector(vid.videoId, vid.title);
-
-                    // Xử lý ảnh thumbnail
-                    let thumbUrl = vid.videoThumbnails && vid.videoThumbnails.length > 0 
-                                   ? vid.videoThumbnails[1].url // Lấy ảnh size vừa
-                                   : `https://i.ytimg.com/vi/${vid.videoId}/mqdefault.jpg`;
-
-                    // Đổi giây sang format mm:ss (để hiển thị chơi thôi)
-                    const durationText = formatDuration(vid.lengthSeconds);
-
-                    card.innerHTML = `
-                        <img src="${thumbUrl}" class="thumb" onerror="this.src='https://i.ytimg.com/vi/${vid.videoId}/mqdefault.jpg'">
-                        <div class="info">
-                            <div class="title">${vid.title}</div>
-                            <div class="meta">
-                                Kênh: ${vid.author} <br>
-                                Thời lượng: ${durationText}
+                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
+                var data = await res.json();
+                var html = '';
+                data.forEach(v => {
+                    html += `
+                    <div class="item">
+                        <img src="${v.img}">
+                        <span class="title">${v.title}</span>
+                        <span class="time">⏱ ${v.time}</span>
+                        <div class="clear"></div>
+                        <button onclick="hienOnhap('${v.id}')" style="width:100%; margin-top:5px; background:#222; color:white; border:1px solid #444;">🔽 CHỌN BÀI NÀY</button>
+                        
+                        <div id="box-${v.id}" class="time-box">
+                            <div class="time-inputs">
+                                <input type="number" id="m-${v.id}" placeholder="Phút" value="0">
+                                <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
                             </div>
+                            
+                            <button class="btn-force" onclick="moVND('${v.id}')">⚡ CÁCH 1: ÉP MỞ APP</button>
+                            
+                            <button class="btn-intent" onclick="moIntent('${v.id}')">🤖 CÁCH 2: LỆNH ANDROID</button>
+                            
+                            <button class="btn-web" onclick="moWeb('${v.id}')">🌐 CÁCH 3: WEB EMBED</button>
                         </div>
-                    `;
-                    document.getElementById('resultsArea').appendChild(card);
+                    </div>`;
                 });
-
-            } catch (e) {
-                console.error(e);
-                document.getElementById('status').innerText = "Lỗi kết nối API (Thử reload hoặc đổi mạng).";
-                document.getElementById('status').style.display = 'block';
-            }
+                document.getElementById('ketqua').innerHTML = html;
+            } catch (e) { document.getElementById('ketqua').innerHTML = '<p style="color:red">Lỗi mạng!</p>'; }
         }
 
-        // 2. HÀM MỞ POPUP NHẬP GIỜ
-        function openTimeSelector(vidId, title) {
-            currentVideoId = vidId;
-            document.getElementById('selectedTitle').innerText = title;
-            // Reset giờ về 0
-            document.getElementById('h').value = 0;
-            document.getElementById('m').value = 0;
-            document.getElementById('s').value = 0;
-            
-            document.getElementById('timeModal').style.display = 'flex';
+        function hienOnhap(id) {
+            document.querySelectorAll('.time-box').forEach(d => d.style.display = 'none');
+            document.getElementById('box-' + id).style.display = 'block';
         }
 
-        function closeModal() {
-            document.getElementById('timeModal').style.display = 'none';
+        function getSeconds(id) {
+            var m = document.getElementById('m-' + id).value || 0;
+            var s = document.getElementById('s-' + id).value || 0;
+            return (parseInt(m) * 60) + parseInt(s);
         }
 
-        // 3. HÀM TÍNH TOÁN VÀ PHÁT (Core Logic)
-        function playCurrentVideo() {
-            const h = parseInt(document.getElementById('h').value) || 0;
-            const m = parseInt(document.getElementById('m').value) || 0;
-            const s = parseInt(document.getElementById('s').value) || 0;
-
-            // Đổi ra GIÂY (Fix lỗi reload mất thời gian)
-            const totalSeconds = (h * 3600) + (m * 60) + s;
-
-            // Tạo iframe link chuẩn Embed
-            const embedUrl = `https://www.youtube.com/embed/${currentVideoId}?start=${totalSeconds}&autoplay=1&rel=0`;
-
-            // Hiển thị Player
-            const iframeHTML = `<iframe src="${embedUrl}" class="player-frame" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-            
-            document.getElementById('playerContainer').innerHTML = iframeHTML;
-            document.getElementById('timeModal').style.display = 'none';
-            document.getElementById('playerOverlay').style.display = 'block';
+        // --- CÁCH 1: Dùng giao thức riêng của Youtube (Bỏ qua trình duyệt) ---
+        function moVND(id) {
+            // Lệnh này bắt buộc hệ thống phải tìm App Youtube để mở
+            // Lưu ý: Cách này có thể không tua đúng giờ trên một số máy cũ, nhưng chắc chắn mở được App.
+            window.location.href = "vnd.youtube:" + id;
         }
 
-        function closePlayer() {
-            // Tắt video khi back
-            document.getElementById('playerContainer').innerHTML = ""; 
-            document.getElementById('playerOverlay').style.display = 'none';
+        // --- CÁCH 2: Dùng Intent của Android (Chuẩn chỉ nhất) ---
+        function moIntent(id) {
+            var s = getSeconds(id);
+            // Đây là câu lệnh "thần chú" gọi đích danh gói com.google.android.youtube
+            var url = "intent://www.youtube.com/watch?v=" + id + "&t=" + s + "s#Intent;package=com.google.android.youtube;scheme=https;end;";
+            window.location.href = url;
         }
 
-        // Tiện ích: Đổi giây ra phút:giây
-        function formatDuration(seconds) {
-            if(!seconds) return "??:??";
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            return `${m}:${s < 10 ? '0'+s : s}`;
+        // --- CÁCH 3: Link Embed (Như cũ) ---
+        function moWeb(id) {
+            var s = getSeconds(id);
+            window.location.href = "https://www.youtube.com/embed/" + id + "?start=" + s + "&autoplay=1";
         }
     </script>
 </body>
