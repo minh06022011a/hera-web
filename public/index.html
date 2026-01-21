@@ -3,85 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA FINAL</title>
+    <title>Hera S9 - Player</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 5px; text-align: center; margin: 0; }
-        .search-box { margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        input[type="text"] { width: 90%; padding: 8px; background: #222; color: #fff; border: 1px solid #0f0; text-align: center; }
-        button.btn-search { width: 95%; padding: 8px; margin-top: 5px; background: #004400; color: #fff; border: 1px solid #0f0; font-weight: bold; cursor: pointer; }
+        /* CSS tối giản, dark mode cho hợp Hera S9 */
+        body { background-color: #121212; color: #e0e0e0; font-family: monospace; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .control-panel { width: 100%; max-width: 800px; background: #1e1e1e; padding: 15px; border-radius: 8px; border: 1px solid #333; }
         
-        .item { border: 1px solid #333; margin-bottom: 5px; padding: 5px; text-align: left; background: #111; }
-        .item img { width: 60px; height: 45px; object-fit: cover; float: left; margin-right: 5px; border: 1px solid #555; }
-        .item .title { font-size: 13px; color: white; display: block; overflow: hidden; height: 32px; }
-        .item .time { font-size: 11px; color: #888; }
-        .clear { clear: both; }
+        input { background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 4px; }
+        .time-group { display: flex; gap: 10px; margin-top: 5px; }
+        .time-group input { text-align: center; }
+        
+        button { width: 100%; padding: 12px; background: #b71c1c; color: #fff; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+        button:hover { background: #d32f2f; }
 
-        .btn-direct { width: 100%; background: #b00; color: white; border: 1px solid red; padding: 12px; cursor: pointer; font-weight: bold; margin-top: 5px; font-size: 14px; }
-        
-        .time-box { display:none; margin-top: 5px; border-top: 1px dashed #333; padding-top:5px; }
-        .time-inputs { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
-        .time-inputs input { width: 30%; background: #333; color: yellow; border: 1px solid #555; text-align: center; font-size: 16px; }
-        .note { font-size: 11px; color: #666; margin-top: 2px; font-style: italic; }
+        .video-wrapper { width: 100%; max-width: 800px; margin-top: 20px; position: relative; padding-bottom: 56.25%; height: 0; background: #000; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
-    <div class="search-box">
-        <input type="text" id="keyword" placeholder="Nhập tên video..." onkeypress="if(event.key=='Enter') timKiem()">
-        <button class="btn-search" onclick="timKiem()">🔍 TÌM KIẾM</button>
+
+    <div class="control-panel">
+        <label>LINK VIDEO (Youtube):</label>
+        <input type="text" id="ytLink" placeholder="Dán link vào đây (VD: https://youtu.be/...)" >
+
+        <label style="display:block; margin-top:10px">THỜI GIAN MUỐN XEM (Tự quy đổi ra giây để fix lỗi reload):</label>
+        <div class="time-group">
+            <input type="number" id="h" placeholder="Giờ" min="0">
+            <input type="number" id="m" placeholder="Phút" min="0">
+            <input type="number" id="s" placeholder="Giây" min="0">
+        </div>
+
+        <button onclick="playHeraVideo()">LOAD VIDEO</button>
     </div>
-    <div id="ketqua"><p style="color:#666">Sẵn sàng.</p></div>
+
+    <div id="playerArea" class="video-wrapper">
+        </div>
 
     <script>
-        function formatTime(seconds) {
-            var m = Math.floor(seconds / 60);
-            var s = seconds % 60;
-            return m + ":" + (s < 10 ? "0" : "") + s;
+        // Hàm xử lý chính cho Hera S9
+        function playHeraVideo() {
+            const rawLink = document.getElementById('ytLink').value.trim();
+            const h = parseInt(document.getElementById('h').value) || 0;
+            const m = parseInt(document.getElementById('m').value) || 0;
+            const s = parseInt(document.getElementById('s').value) || 0;
+
+            // 1. Lọc ID Video từ link (xử lý mọi dạng link: short, embed, watch)
+            let videoId = "";
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = rawLink.match(regExp);
+
+            if (match && match[2].length === 11) {
+                videoId = match[2];
+            } else {
+                alert("Link Youtube lỗi rồi, check lại đi bro!");
+                return;
+            }
+
+            // 2. THUẬT TOÁN QUAN TRỌNG: Đổi tất cả ra GIÂY (Seconds)
+            // Đây là cái fix lỗi "reload bị về 0:00" vì Youtube Embed ưu tiên tham số 'start'
+            const totalSeconds = (h * 3600) + (m * 60) + s;
+
+            // 3. Tạo link Embed chuẩn
+            // Thêm 'autoplay=1' để chạy luôn
+            // Thêm 'start=' với số giây đã tính để ép Youtube nhảy đúng giờ
+            const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${totalSeconds}&autoplay=1&rel=0`;
+
+            // 4. Render lại Iframe
+            const playerHTML = `<iframe 
+                                    src="${embedUrl}" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                    allowfullscreen>
+                                </iframe>`;
+            
+            document.getElementById('playerArea').innerHTML = playerHTML;
+            
+            // (Tùy chọn) Lưu link vào localStorage nếu muốn lần sau mở lại nó tự điền
+            localStorage.setItem('hera_last_video', rawLink);
         }
 
-        async function timKiem() {
-            var k = document.getElementById('keyword').value;
-            if(!k) return;
-            document.getElementById('ketqua').innerHTML = '<p style="color:yellow">Đang quét 5 Server...</p>';
-            try {
-                var res = await fetch('/tim-kiem?q=' + encodeURIComponent(k));
-                var data = await res.json();
-                
-                if (data.length === 0) {
-                    document.getElementById('ketqua').innerHTML = '<p style="color:red">Server quá tải. Thử lại sau 10s!</p>';
-                    return;
-                }
-
-                var html = '';
-                data.forEach(v => {
-                    html += `
-                    <div class="item">
-                        <img src="${v.img}">
-                        <span class="title">${v.title}</span>
-                        <span class="time">⏱ ${formatTime(v.time)}</span>
-                        <div class="clear"></div>
-                        <button onclick="hienNut('${v.id}')" style="width:100%; margin-top:5px; background:#222; color:white; border:1px solid #444;">🔽 CHỌN</button>
-                        <div id="box-${v.id}" class="time-box">
-                            <div class="time-inputs">
-                                <input type="number" id="m-${v.id}" placeholder="Phút" value="0">
-                                <input type="number" id="s-${v.id}" placeholder="Giây" value="0">
-                            </div>
-                            <button class="btn-direct" onclick="xemNgay('${v.id}')">▶ XEM NGAY</button>
-                            <div class="note">Tự chuyển Embed nếu lỗi</div>
-                        </div>
-                    </div>`;
-                });
-                document.getElementById('ketqua').innerHTML = html;
-            } catch (e) { document.getElementById('ketqua').innerHTML = '<p style="color:red">Lỗi mạng!</p>'; }
-        }
-        function hienNut(id) {
-            document.querySelectorAll('.time-box').forEach(d => d.style.display = 'none');
-            document.getElementById('box-' + id).style.display = 'block';
-        }
-        function xemNgay(id) {
-            var m = document.getElementById('m-' + id).value || 0;
-            var s = document.getElementById('s-' + id).value || 0;
-            var total = (parseInt(m) * 60) + parseInt(s);
-            window.location.href = "/xem-ngay?id=" + id + "&t=" + total + "&r=" + Math.random();
+        // Tự động điền link cũ nếu có (Tiện ích phụ)
+        window.onload = function() {
+            if(localStorage.getItem('hera_last_video')) {
+                document.getElementById('ytLink').value = localStorage.getItem('hera_last_video');
+            }
         }
     </script>
 </body>
