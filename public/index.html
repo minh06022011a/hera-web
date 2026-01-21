@@ -3,51 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hera S9 - Player</title>
+    <title>Hera S9 - Link Converter</title>
     <style>
-        /* CSS tối giản, dark mode cho hợp Hera S9 */
         body { background-color: #121212; color: #e0e0e0; font-family: monospace; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .control-panel { width: 100%; max-width: 800px; background: #1e1e1e; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .control-panel { width: 100%; max-width: 600px; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #333; }
         
-        input { background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 4px; }
-        .time-group { display: flex; gap: 10px; margin-top: 5px; }
+        label { font-weight: bold; color: #ff5252; display: block; margin-top: 10px; }
+        input { background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 12px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 4px; font-size: 16px; }
+        
+        .time-group { display: flex; gap: 10px; }
         .time-group input { text-align: center; }
         
-        button { width: 100%; padding: 12px; background: #b71c1c; color: #fff; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+        button { width: 100%; padding: 15px; background: #b71c1c; color: #fff; border: none; font-weight: bold; margin-top: 20px; cursor: pointer; border-radius: 4px; font-size: 16px; text-transform: uppercase; }
         button:hover { background: #d32f2f; }
 
-        .video-wrapper { width: 100%; max-width: 800px; margin-top: 20px; position: relative; padding-bottom: 56.25%; height: 0; background: #000; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
-        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        /* Phần hiện kết quả Link */
+        .result-area { margin-top: 20px; display: none; /* Ẩn đi khi chưa bấm nút */ }
+        .result-box { background: #000; border: 1px solid #00ff00; color: #00ff00; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="control-panel">
-        <label>LINK VIDEO (Youtube):</label>
-        <input type="text" id="ytLink" placeholder="Dán link vào đây (VD: https://youtu.be/...)" >
+        <label>DÁN LINK YOUTUBE GỐC:</label>
+        <input type="text" id="ytLink" placeholder="Ví dụ: https://youtu.be/..." >
 
-        <label style="display:block; margin-top:10px">THỜI GIAN MUỐN XEM (Tự quy đổi ra giây để fix lỗi reload):</label>
+        <label>CHỌN THỜI GIAN MUỐN SKIP ĐẾN:</label>
         <div class="time-group">
             <input type="number" id="h" placeholder="Giờ" min="0">
             <input type="number" id="m" placeholder="Phút" min="0">
             <input type="number" id="s" placeholder="Giây" min="0">
         </div>
 
-        <button onclick="playHeraVideo()">LOAD VIDEO</button>
+        <button onclick="convertLink()">TẠO LINK HERA</button>
+
+        <div id="resultDiv" class="result-area">
+            <label style="color: #00ff00;">LINK ĐÃ XỬ LÝ (Copy cái này):</label>
+            <input type="text" id="finalLink" class="result-box" readonly onclick="this.select()">
+        </div>
     </div>
 
-    <div id="playerArea" class="video-wrapper">
-        </div>
-
     <script>
-        // Hàm xử lý chính cho Hera S9
-        function playHeraVideo() {
+        function convertLink() {
             const rawLink = document.getElementById('ytLink').value.trim();
             const h = parseInt(document.getElementById('h').value) || 0;
             const m = parseInt(document.getElementById('m').value) || 0;
             const s = parseInt(document.getElementById('s').value) || 0;
 
-            // 1. Lọc ID Video từ link (xử lý mọi dạng link: short, embed, watch)
+            // Lọc ID Video
             let videoId = "";
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = rawLink.match(regExp);
@@ -55,38 +58,20 @@
             if (match && match[2].length === 11) {
                 videoId = match[2];
             } else {
-                alert("Link Youtube lỗi rồi, check lại đi bro!");
+                alert("Link Youtube lỗi rồi!");
                 return;
             }
 
-            // 2. THUẬT TOÁN QUAN TRỌNG: Đổi tất cả ra GIÂY (Seconds)
-            // Đây là cái fix lỗi "reload bị về 0:00" vì Youtube Embed ưu tiên tham số 'start'
+            // Đổi ra tổng số giây (Fix lỗi reload)
             const totalSeconds = (h * 3600) + (m * 60) + s;
 
-            // 3. Tạo link Embed chuẩn
-            // Thêm 'autoplay=1' để chạy luôn
-            // Thêm 'start=' với số giây đã tính để ép Youtube nhảy đúng giờ
-            const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${totalSeconds}&autoplay=1&rel=0`;
+            // Tạo link Embed có tham số start (tính bằng giây)
+            // Đây là cái link ông cần để ném vào web khác hoặc tool khác
+            const finalUrl = `https://www.youtube.com/embed/${videoId}?start=${totalSeconds}`;
 
-            // 4. Render lại Iframe
-            const playerHTML = `<iframe 
-                                    src="${embedUrl}" 
-                                    frameborder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                    allowfullscreen>
-                                </iframe>`;
-            
-            document.getElementById('playerArea').innerHTML = playerHTML;
-            
-            // (Tùy chọn) Lưu link vào localStorage nếu muốn lần sau mở lại nó tự điền
-            localStorage.setItem('hera_last_video', rawLink);
-        }
-
-        // Tự động điền link cũ nếu có (Tiện ích phụ)
-        window.onload = function() {
-            if(localStorage.getItem('hera_last_video')) {
-                document.getElementById('ytLink').value = localStorage.getItem('hera_last_video');
-            }
+            // Hiện kết quả ra ô input
+            document.getElementById('resultDiv').style.display = 'block';
+            document.getElementById('finalLink').value = finalUrl;
         }
     </script>
 </body>
